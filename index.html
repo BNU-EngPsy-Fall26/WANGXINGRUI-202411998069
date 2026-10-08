@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🦑 鱿鱼游戏：玻璃桥信号检测论实验</title>
+<style>
+/* ==========================================================================
+   0. 主题变量（暗黑工业风 / 鱿鱼游戏配色）
+   ========================================================================== */
+:root{
+  --bg:#080a0e;
+  --card:#141a24;
+  --line:#26303e;
+  --text:#e9eef7;
+  --dim:#8b98ab;
+  --pink:#ff2e6a;
+  --teal:#1fe3c2;
+  --safe:#28e07d;
+  --danger:#ff3b46;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Courier New",monospace;
+}
+
+/* ==========================================================================
+   1. 基础重置与页面容器
+   ========================================================================== */
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(1200px 700px at 50% -15%, #17222f 0%, transparent 62%),
+    radial-gradient(900px 620px at 92% 112%, #1b1026 0%, transparent 58%),
+    var(--bg);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+/* 三个页面靠 .is-active 切换显示 */
+.page{ display:none; min-height:100vh; padding:34px 20px 56px; }
+.page.is-active{ display:block; animation:pageIn .45s ease both; }
+@keyframes pageIn{ from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:none;} }
+.wrap{ max-width:980px; margin:0 auto; }
+kbd{
+  font-family:var(--mono); font-size:12px; padding:2px 6px; border-radius:5px;
+  border:1px solid var(--line); background:#0d1219; color:var(--dim);
+}
+
+/* ==========================================================================
+   2. 通用组件：标题、卡片、按钮
+   ========================================================================== */
+.title{
+  font-size:clamp(26px,4.4vw,44px); line-height:1.25; margin:0 0 8px;
+  letter-spacing:2px; text-align:center; font-weight:800;
+  background:linear-gradient(92deg,#ffffff 0%,var(--teal) 42%,var(--pink) 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 0 26px rgba(31,227,194,.22));
+}
+.subtitle{ text-align:center; color:var(--dim); font-size:14px; letter-spacing:4px; margin:0 0 30px; }
+
+.card{
+  background:linear-gradient(180deg,rgba(23,30,41,.92),rgba(14,19,26,.92));
+  border:1px solid var(--line); border-radius:18px; padding:24px 26px;
+  box-shadow:0 22px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.card + .card{ margin-top:18px; }
+.card h2{
+  font-size:15px; letter-spacing:2px; margin:0 0 14px; color:var(--teal);
+  font-weight:700;
+}
+.card p{ margin:0 0 10px; line-height:1.85; color:#c8d3e2; font-size:15px; }
+.card ul{ margin:0; padding-left:20px; color:#c8d3e2; font-size:15px; line-height:1.95; }
+.card b{ color:#fff; }
+.hl-pink{ color:var(--pink); font-weight:700; }
+.hl-teal{ color:var(--teal); font-weight:700; }
+
+/* 按钮 */
+.btn{
+  appearance:none; border:1px solid var(--line); background:#121820; color:var(--text);
+  padding:12px 22px; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer;
+  letter-spacing:1px; font-family:inherit;
+  transition:transform .16s ease, box-shadow .22s ease, border-color .22s ease, background .22s ease;
+}
+.btn:hover{ transform:translateY(-2px); border-color:rgba(255,46,106,.75); box-shadow:0 10px 28px rgba(255,46,106,.24); }
+.btn:active{ transform:translateY(0); }
+.btn-primary{
+  background:linear-gradient(92deg,var(--pink),#ff6a3d); border-color:transparent; color:#fff;
+  font-size:17px; padding:15px 46px; letter-spacing:3px;
+  box-shadow:0 14px 36px rgba(255,46,106,.32);
+}
+.btn-primary:hover{ box-shadow:0 18px 46px rgba(255,46,106,.5); }
+.btn-ghost{ background:transparent; }
+
+/* ==========================================================================
+   3. 开始界面
+   ========================================================================== */
+.rules-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin-top:16px; }
+.rule{ border:1px solid var(--line); border-radius:14px; padding:16px; background:rgba(255,255,255,.02); }
+.rule .ico{ font-size:20px; }
+.rule .t{ font-weight:700; margin:6px 0 4px; font-size:14px; }
+.rule .d{ color:var(--dim); font-size:13px; line-height:1.7; }
+
+.diff-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px; }
+@media (max-width:640px){ .diff-grid{ grid-template-columns:1fr; } }
+.diff{
+  border:1px solid var(--line); border-radius:14px; padding:18px 16px; cursor:pointer;
+  background:rgba(255,255,255,.02); text-align:left; color:var(--text); font-family:inherit;
+  transition:transform .16s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+.diff:hover{ transform:translateY(-3px); border-color:rgba(31,227,194,.6); }
+.diff.is-sel{
+  border-color:var(--teal); background:linear-gradient(180deg,rgba(31,227,194,.14),rgba(31,227,194,.03));
+  box-shadow:0 0 0 1px rgba(31,227,194,.35), 0 14px 34px rgba(31,227,194,.16);
+}
+.diff .name{ font-size:17px; font-weight:800; letter-spacing:2px; }
+.diff .desc{ color:var(--dim); font-size:13px; margin-top:8px; line-height:1.7; }
+.diff .bias{ font-family:var(--mono); font-size:12px; margin-top:10px; color:#7d8a9c; }
+.diff.is-sel .name{ color:var(--teal); }
+
+.start-bar{ display:flex; justify-content:center; margin-top:30px; }
+
+/* ==========================================================================
+   4. 游戏界面：HUD / 桥面 / 玻璃面板
+   ========================================================================== */
+.hud{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  border:1px solid var(--line); border-radius:14px; padding:12px 18px;
+  background:linear-gradient(180deg,rgba(20,26,36,.95),rgba(12,16,22,.95));
+}
+.hud-item{ display:flex; flex-direction:column; gap:3px; min-width:74px; }
+.hud-label{ font-size:11px; letter-spacing:2px; color:var(--dim); }
+.hud-value{ font-family:var(--mono); font-size:18px; font-weight:700; }
+.hud-value.pink{ color:var(--pink); }
+.hud-value.teal{ color:var(--teal); }
+
+.progress{ height:6px; border-radius:99px; background:#161d27; margin:14px 0 10px; overflow:hidden; }
+.progress-bar{ height:100%; width:0%; border-radius:99px; background:linear-gradient(90deg,var(--teal),var(--pink)); transition:width .4s ease; }
+
+.prior-note{ text-align:center; color:var(--dim); font-size:13.5px; margin:6px 0 18px; letter-spacing:.5px; }
+.prior-note b{ color:var(--teal); }
+
+.bridge{ display:grid; grid-template-columns:1fr 1fr; gap:30px; position:relative; z-index:2; }
+@media (max-width:520px){ .bridge{ gap:14px; } }
+
+/* 玻璃面板本体：背景色（亮度）由 JS 按难度动态写入 */
+.panel{
+  appearance:none; -webkit-appearance:none;
+  position:relative; display:block; width:100%; height:min(50vh,400px); min-height:240px;
+  border-radius:16px; border:1px solid rgba(255,255,255,.16); cursor:pointer; padding:0;
+  /* 未绘制前的兜底底色：中性的半透明玻璃色，避免浏览器默认按钮底色闪一下 */
+  background:rgba(118,128,142,.22);
+  overflow:hidden; font-family:inherit; color:inherit;
+  transition:transform .18s ease, box-shadow .24s ease, border-color .24s ease;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18), inset 0 -34px 60px rgba(0,0,0,.5), 0 20px 44px rgba(0,0,0,.55);
+  --glow:rgba(255,255,255,.16);
+}
+/* 玻璃表面的高光斜纹 */
+.panel::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(118deg,rgba(255,255,255,.20) 0%,rgba(255,255,255,0) 42%,rgba(255,255,255,0) 100%);
+  opacity:.85;
+}
+/* 玻璃边缘发光 */
+.panel::before{
+  content:""; position:absolute; inset:-1px; border-radius:16px; pointer-events:none;
+  box-shadow:0 0 26px var(--glow), inset 0 0 26px rgba(255,255,255,.06);
+}
+.panel:hover{
+  transform:translateY(-5px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.24), inset 0 -34px 60px rgba(0,0,0,.5), 0 0 0 1px var(--glow), 0 26px 56px rgba(0,0,0,.6);
+}
+.panel-tag{
+  position:absolute; left:14px; bottom:12px; font-family:var(--mono); font-size:12px;
+  letter-spacing:2px; color:rgba(255,255,255,.5); z-index:3;
+}
+.board-locked .panel{ pointer-events:none; }
+
+/* 踩对：绿色脉冲 */
+@keyframes safePulse{
+  0%{ box-shadow:inset 0 0 0 rgba(40,224,125,0), 0 0 0 rgba(40,224,125,0); }
+  35%{ box-shadow:inset 0 0 40px rgba(40,224,125,.55), 0 0 54px rgba(40,224,125,.75); }
+  100%{ box-shadow:inset 0 0 20px rgba(40,224,125,.25), 0 0 24px rgba(40,224,125,.4); }
+}
+.panel.is-safe{ border-color:var(--safe); animation:safePulse .85s ease-out forwards; }
+
+/* 踩错：碎裂闪白 + 向下坠落并旋转 */
+@keyframes crackFlash{ 0%{opacity:0;} 10%{opacity:1;} 100%{opacity:0;} }
+@keyframes glassFall{
+  0%{ transform:translateY(0) rotate(0deg); opacity:1; filter:brightness(1); }
+  12%{ transform:translateY(8px) rotate(1.5deg); filter:brightness(2.4) saturate(.35); }
+  100%{ transform:translateY(118vh) rotate(38deg) scale(.86); opacity:.04; filter:brightness(.6); }
+}
+.panel.is-crack::after{ content:""; background:#fff; animation:crackFlash .35s ease-out forwards; }
+.panel.is-fall{
+  animation:glassFall 1.45s cubic-bezier(.45,.03,.9,.6) forwards;
+  border-color:var(--danger);
+  box-shadow:0 0 56px rgba(255,59,70,.7), inset 0 0 40px rgba(255,59,70,.5);
+  pointer-events:none;
+}
+/* 掉落瞬间揭示：这一块其实才是强化玻璃 */
+.panel.is-truth{ border-color:var(--teal); box-shadow:0 0 46px rgba(31,227,194,.6), inset 0 0 30px rgba(31,227,194,.28); }
+.panel.is-truth .truth-tag{ opacity:1; }
+.truth-tag{
+  position:absolute; top:14px; left:50%; transform:translateX(-50%); white-space:nowrap;
+  background:rgba(31,227,194,.16); border:1px solid rgba(31,227,194,.7); color:#8ff8e4;
+  font-size:12.5px; letter-spacing:1px; padding:5px 12px; border-radius:99px;
+  opacity:0; transition:opacity .3s ease .15s; backdrop-filter:blur(4px); z-index:3;
+}
+
+/* 桥下的深渊 */
+.chasm{
+  height:80px; margin-top:6px; border-radius:0 0 24px 24px;
+  background:linear-gradient(180deg,rgba(255,46,106,.10),rgba(0,0,0,0) 70%);
+  box-shadow:inset 0 14px 30px rgba(0,0,0,.6);
+}
+.kbd-tip{ text-align:center; color:#5f6b7c; font-size:12.5px; margin-top:16px; }
+
+/* 反馈提示 */
+.toast{
+  position:fixed; left:50%; top:20%; transform:translate(-50%,-12px) scale(.96);
+  padding:14px 34px; border-radius:99px; font-size:23px; font-weight:800; letter-spacing:2px;
+  opacity:0; pointer-events:none; transition:.26s ease; backdrop-filter:blur(8px);
+  z-index:50; white-space:nowrap;
+}
+.toast.show{ opacity:1; transform:translate(-50%,0) scale(1); }
+.toast.safe{ background:rgba(40,224,125,.16); color:#6dffb4; border:1px solid rgba(40,224,125,.6); box-shadow:0 0 46px rgba(40,224,125,.32); }
+.toast.danger{ background:rgba(255,59,70,.18); color:#ff949a; border:1px solid rgba(255,59,70,.65); box-shadow:0 0 46px rgba(255,59,70,.36); }
+
+/* ==========================================================================
+   5. 结果界面
+   ========================================================================== */
+.banner{
+  text-align:center; font-size:20px; font-weight:800; letter-spacing:2px; margin:0 0 18px;
+  padding:16px; border-radius:14px; border:1px solid var(--line);
+}
+.banner.win{ color:#6dffb4; border-color:rgba(40,224,125,.5); background:rgba(40,224,125,.08); }
+.banner.lose{ color:#ff949a; border-color:rgba(255,59,70,.5); background:rgba(255,59,70,.08); }
+
+table.matrix{ width:100%; border-collapse:collapse; font-size:14px; }
+table.matrix th,table.matrix td{ border:1px solid var(--line); padding:11px 10px; text-align:center; vertical-align:middle; }
+table.matrix thead th{ background:#10161e; color:var(--dim); font-size:12.5px; font-weight:600; line-height:1.6; }
+table.matrix tbody th{ background:#10161e; color:var(--dim); font-size:12.5px; font-weight:600; line-height:1.6; }
+table.matrix td b{ display:block; font-family:var(--mono); font-size:20px; margin-top:3px; }
+td.cell-hit{ background:rgba(40,224,125,.10); color:#8ff7c0; }
+td.cell-cr { background:rgba(31,227,194,.09); color:#8ff8e4; }
+td.cell-miss{ background:rgba(255,159,64,.10); color:#ffcf9a; }
+td.cell-fa  { background:rgba(255,59,70,.10); color:#ff9ea3; }
+
+.metrics{ display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:14px; margin-top:6px; }
+.metric{
+  border:1px solid var(--line); border-radius:14px; padding:16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+}
+.metric .m-label{ font-size:12px; color:var(--dim); letter-spacing:1px; }
+.metric .m-value{ font-family:var(--mono); font-size:27px; font-weight:800; margin-top:8px; color:#fff; }
+.metric .m-sub{ font-family:var(--mono); font-size:11.5px; color:#6c7889; margin-top:7px; line-height:1.6; }
+.metric.accent .m-value{ color:var(--teal); }
+.metric.accent-pink .m-value{ color:var(--pink); }
+
+.formula{
+  font-family:var(--mono); font-size:13px; color:#9fb0c4; background:#0c1117;
+  border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-top:12px;
+  line-height:2; overflow-x:auto; white-space:pre;
+}
+.result-actions{ display:flex; justify-content:center; gap:14px; margin-top:28px; flex-wrap:wrap; }
+
+/* ==========================================================================
+   6. 加分项 ①：SDT 概念实验室（分布图 / ROC 曲线 / 滑块）
+   ========================================================================== */
+.lab-grid{ display:grid; grid-template-columns:1.15fr 1fr; gap:18px; align-items:start; }
+@media (max-width:860px){ .lab-grid{ grid-template-columns:1fr; } }
+.chart-box{ border:1px solid var(--line); border-radius:12px; background:#0b1017; padding:8px; }
+.chart-box svg{ width:100%; height:auto; display:block; }
+.chart-title{ font-size:12px; color:var(--dim); letter-spacing:1px; margin:0 0 8px; }
+.legend{ display:flex; flex-wrap:wrap; gap:14px; margin-top:10px; font-size:12px; color:var(--dim); }
+.legend i{ display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+
+.sliders{ margin-top:16px; padding-top:14px; border-top:1px dashed var(--line); }
+.slider-row{ display:grid; grid-template-columns:104px 1fr 76px; gap:12px; align-items:center; margin-top:12px; }
+.slider-row label{ font-size:13px; color:#c8d3e2; }
+.slider-row output{ font-family:var(--mono); font-size:14px; text-align:right; color:var(--teal); }
+input[type=range]{
+  appearance:none; -webkit-appearance:none; width:100%; height:5px; border-radius:99px;
+  background:linear-gradient(90deg,var(--teal),var(--pink)); outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#fff;
+  border:2px solid var(--pink); cursor:pointer; box-shadow:0 0 12px rgba(255,46,106,.7);
+}
+input[type=range]::-moz-range-thumb{
+  width:14px; height:14px; border-radius:50%; background:#fff;
+  border:2px solid var(--pink); cursor:pointer;
+}
+
+/* ==========================================================================
+   7. 加分项 ②：多局数据对比 / 排行榜（localStorage）
+   ========================================================================== */
+.hist-head{ display:flex; flex-wrap:wrap; gap:20px; align-items:baseline; margin-bottom:14px; }
+.hist-kpi{ font-family:var(--mono); font-size:13px; color:var(--dim); }
+.hist-kpi b{ color:#fff; font-size:17px; font-family:var(--mono); }
+.bars{
+  display:flex; align-items:flex-end; gap:9px; height:132px; padding:0 4px;
+  border-bottom:1px solid var(--line); overflow-x:auto;
+}
+.bar-col{ display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:4px; min-width:34px; flex:0 0 auto; height:100%; }
+.bar-col .bv{ font-size:10px; color:var(--dim); font-family:var(--mono); }
+.bar-col .bar{ width:22px; border-radius:5px 5px 0 0; background:linear-gradient(180deg,var(--teal),#0e8a78); box-shadow:0 0 12px rgba(31,227,194,.3); }
+.bar-col .bar.is-neg{ background:linear-gradient(180deg,#ff7d97,var(--pink)); box-shadow:0 0 12px rgba(255,46,106,.35); }
+.bar-col .bar.is-best{ background:linear-gradient(180deg,#fff,var(--teal)); box-shadow:0 0 16px rgba(31,227,194,.7); }
+.bar-col .bl{ font-size:10px; color:#5f6b7c; font-family:var(--mono); }
+.zero-line{ position:relative; height:0; border-top:1px dashed #33404f; margin-top:-1px; }
+
+.hist-table{ width:100%; border-collapse:collapse; font-size:13px; font-family:var(--mono); }
+.hist-table th,.hist-table td{ border-bottom:1px solid var(--line); padding:9px 8px; text-align:center; white-space:nowrap; }
+.hist-table thead th{ color:var(--dim); font-size:11.5px; letter-spacing:1px; font-weight:600; }
+.hist-table tbody tr:hover{ background:rgba(255,255,255,.03); }
+.hist-table tr.is-best td{ background:rgba(31,227,194,.09); color:#cffff5; }
+.empty-hint{ text-align:center; color:var(--dim); font-size:13.5px; padding:22px 0; line-height:1.9; }
+</style>
+</head>
+<body>
+
+<!-- =====================================================================
+     页面 1：开始界面
+     ===================================================================== -->
+<section class="page is-active" id="page-start">
+  <div class="wrap">
+    <h1 class="title">🦑 鱿鱼游戏：玻璃桥挑战</h1>
+    <p class="subtitle">信 号 检 测 论 实 验</p>
+
+    <div class="card">
+      <h2>实验说明</h2>
+      <p>
+        你正站在一座玻璃桥上。每一阶台阶上有 <b>两块玻璃</b>，其中 <b>恰好一块是强化玻璃</b>（踩上去不会碎），
+        另一块是普通玻璃（踩上去立刻碎裂，你会坠入深渊，<span class="hl-pink">游戏立即结束</span>）。
+      </p>
+      <p>
+        强化玻璃在<b>左侧</b>的先验概率为 <span class="hl-pink">30%</span>，在右侧的概率为 70%。
+        也就是说，如果你完全无视亮度线索、闭着眼睛只踩右边，长期来看有 70% 的台阶是安全的 —— 这正是「判断标准 c」要刻画的东西。
+      </p>
+      <div class="rules-grid">
+        <div class="rule">
+          <div class="ico">🔍</div>
+          <div class="t">判断依据</div>
+          <div class="d">强化玻璃通常更亮、偏白偏绿；普通玻璃更深更灰。难度越高，两者亮度差越小。</div>
+        </div>
+        <div class="rule">
+          <div class="ico">💀</div>
+          <div class="t">惩罚机制</div>
+          <div class="d">踩到普通玻璃 → 玻璃碎裂、坠落悬崖，本局终止，剩余试次不再进行。</div>
+        </div>
+        <div class="rule">
+          <div class="ico">📊</div>
+          <div class="t">记录指标</div>
+          <div class="d">系统记录击中/漏报/虚报/正确拒绝，并计算 d'（辨别力）与 c（判断标准）。</div>
+        </div>
+        <div class="rule">
+          <div class="ico">🏁</div>
+          <div class="t">试次数量</div>
+          <div class="d">最多 20 个试次。若能走完全程，则会得到完整的 20 个有效试次。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>选择难度（影响 d'）</h2>
+      <div class="diff-grid" id="diffGrid">
+        <button type="button" class="diff" data-diff="easy">
+          <div class="name">简单</div>
+          <div class="desc">强化玻璃与普通玻璃的亮度差异<b style="color:#8ff7c0">非常明显</b>，几乎一眼可辨。</div>
+          <div class="bias">亮度差 Δ ≈ 78 · 感知噪声小 · d' 高</div>
+        </button>
+        <button type="button" class="diff is-sel" data-diff="medium">
+          <div class="name">中等</div>
+          <div class="desc">亮度差异<b style="color:#ffcf9a">中等</b>，需要盯住仔细比较才能分辨。</div>
+          <div class="bias">亮度差 Δ ≈ 34 · 感知噪声中 · d' 中</div>
+        </button>
+        <button type="button" class="diff" data-diff="hard">
+          <div class="name">困难</div>
+          <div class="desc">亮度差异<b style="color:#ff9ea3">极小</b>，几乎与随机噪声混淆，基本只能靠猜。</div>
+          <div class="bias">亮度差 Δ ≈ 10 · 感知噪声大 · d' 低</div>
+        </button>
+      </div>
+      <div class="start-bar">
+        <button type="button" class="btn btn-primary" id="btnStart">开 始 挑 战</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     页面 2：游戏界面
+     ===================================================================== -->
+<section class="page" id="page-game">
+  <div class="wrap">
+    <!-- 顶部状态栏 -->
+    <header class="hud">
+      <div class="hud-item">
+        <span class="hud-label">试次</span>
+        <span class="hud-value"><span id="hudTrialNow">1</span><span style="color:#5f6b7c">/</span><span id="hudTrialTotal">20</span></span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">难度</span>
+        <span class="hud-value teal" id="hudDiff">中等</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">已通过</span>
+        <span class="hud-value pink" id="hudAlive">0</span>
+      </div>
+      <div class="hud-item" style="min-width:auto">
+        <span class="hud-label">状态</span>
+        <span class="hud-value" id="hudStatus" style="font-size:14px">站在桥上…</span>
+      </div>
+    </header>
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+    <p class="prior-note">
+      先验信息：强化玻璃有 <b>30%</b> 的概率在<b>左侧</b>，<b>70%</b> 在右侧 —— 请把这条信息纳入你的判断。
+    </p>
+
+    <!-- 桥面：两块玻璃 -->
+    <div class="bridge" id="board">
+      <button type="button" class="panel" id="panelLeft" data-side="left">
+        <span class="truth-tag">这块才是强化玻璃</span>
+        <span class="panel-tag">LEFT · 左</span>
+      </button>
+      <button type="button" class="panel" id="panelRight" data-side="right">
+        <span class="truth-tag">这块才是强化玻璃</span>
+        <span class="panel-tag">RIGHT · 右</span>
+      </button>
+    </div>
+    <div class="chasm"></div>
+
+    <p class="kbd-tip">键盘：<kbd>←</kbd>/<kbd>A</kbd> 选左侧，<kbd>→</kbd>/<kbd>D</kbd> 选右侧</p>
+  </div>
+</section>
+
+<!-- 反馈提示（全局，覆盖在页面上方） -->
+<div class="toast" id="toast"></div>
+
+<!-- =====================================================================
+     页面 3：结果界面
+     ===================================================================== -->
+<section class="page" id="page-result">
+  <div class="wrap">
+    <h1 class="title">实 验 结 果</h1>
+    <p class="subtitle">S I G N A L &nbsp; D E T E C T I O N &nbsp; A N A L Y S I S</p>
+
+    <div id="resultBanner"></div>
+    <div id="resultSummary"></div>
+    <div id="resultMatrix"></div>
+    <div id="resultMetrics"></div>
+    <!-- 加分项 ①：SDT 概念实验室（分布图 + ROC 曲线 + d′/c 滑块） -->
+    <div id="resultLab"></div>
+    <!-- 加分项 ②：多局数据对比 / 排行榜 -->
+    <div id="resultHistory"></div>
+    <div id="resultNotes"></div>
+
+    <div class="result-actions">
+      <button type="button" class="btn btn-primary" id="btnRestart">重 新 挑 战</button>
+      <button type="button" class="btn btn-ghost" id="btnBackStart">返回开始界面</button>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ==========================================================================
+   鱿鱼游戏 · 玻璃桥信号检测论（SDT）实验
+   --------------------------------------------------------------------------
+   【实验逻辑 / 试次生成】
+   1. 每个试次呈现左右两块玻璃，其中恰好一块是强化玻璃（可承重）。
+   2. 先验概率：强化玻璃出现在「左侧」的概率 P(S) = 0.30，出现在右侧的概率 0.70。
+      对应 SDT 里的「信号试次（左侧是强化玻璃）」与「噪音试次（右侧是强化玻璃）」。
+   3. 玩家点击某一块玻璃：
+        · 踩中强化玻璃 → 通过，进入下一试次；
+        · 踩中普通玻璃 → 玻璃碎裂、坠落，本局立即结束。
+   4. 难度控制两块玻璃的亮度差 Δ 与随机感知噪声 σ，从而控制辨别力 d' 的高低。
+
+   【2×2 计分（把「点击左边」记为回答“是”）】
+        · 击中(Hit)     ：左侧是强化玻璃 且 玩家踩左边（判断正确，通过）
+        · 漏报(Miss)    ：左侧是强化玻璃 且 玩家踩右边（踩空坠落）
+        · 虚报(FA)      ：右侧是强化玻璃 且 玩家踩左边（踩空坠落）
+        · 正确拒绝(CR)  ：右侧是强化玻璃 且 玩家踩右边（判断正确，通过）
+     这是把「二择一（2AFC）」任务转换为是/否判断矩阵的标准做法，
+     因此 信号总数 = Hit + Miss（≈ 30% 的试次），噪音总数 = FA + CR（≈ 70% 的试次）。
+
+   【为什么不做「两块都是普通玻璃」的试次？】
+     若某试次两块都是普通玻璃，那么玩家无论踩哪一块都必然坠落。
+     在 P(无信号) = 0.70 的设定下，每试次的死亡率将高达 70% + 30% × 50% ≈ 85%，
+     实验会在第 1~2 个试次就结束，根本无法收集到 20 个试次、也无法估计 d' 与 c。
+     因此本实现让每一阶都恰好有一块强化玻璃（这也正是《鱿鱼游戏》玻璃桥的原始设定），
+     把「30% 先验」落在「强化玻璃在左侧的概率」上，从而得到一个可玩且数学上完备的 SDT 任务。
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   全局配置
+   -------------------------------------------------------------------------- */
+const CONFIG = {
+  TOTAL_TRIALS: 20,      // 最大试次数
+  P_SIGNAL: 0.30,        // 先验概率：强化玻璃出现在左侧的概率 P(S)
+  BASE_LUM: 92,          // 玻璃的基础亮度（0-255）
+  DIFFICULTY: {
+    easy:   { key:'easy',   label:'简单', delta:78, sigma:6,  desc:'亮度差异非常明显' },
+    medium: { key:'medium', label:'中等', delta:34, sigma:14, desc:'亮度差异中等' },
+    hard:   { key:'hard',   label:'困难', delta:10, sigma:22, desc:'亮度差异极小' }
+  }
+};
+
+/* --------------------------------------------------------------------------
+   运行状态
+   -------------------------------------------------------------------------- */
+const state = {
+  difficulty: 'medium',                 // 当前难度
+  trialNo: 0,                           // 已经开始的试次序号（也是有效试次数）
+  counts: { hit:0, miss:0, fa:0, cr:0 },// 2×2 计数
+  current: null,                         // 当前试次数据
+  locked: false,                         // 是否已锁定（防止连点）
+  over: false                            // 本局是否已结束
+};
+
+/* --------------------------------------------------------------------------
+   工具函数
+   -------------------------------------------------------------------------- */
+const $ = (id) => document.getElementById(id);
+
+/** 生成 [min, max] 之间的随机数 */
+function rand(min, max){
+  return Math.random() * (max - min) + min;
+}
+
+/** 把数值限制在 [min, max] 区间内 */
+function clamp(v, min, max){
+  return Math.min(max, Math.max(min, v));
+}
+
+/** 保留 n 位小数的字符串（用于展示） */
+function fmt(v, n){
+  if(!isFinite(v)) return '—';
+  return (v >= 0 ? '' : '-') + Math.abs(v).toFixed(n === undefined ? 3 : n);
+}
+
+/* --------------------------------------------------------------------------
+   Z 分数（标准正态分布反函数）—— Acklam 算法近似
+   输入 p ∈ (0,1)，返回满足 Φ(z) = p 的 z 值。
+   精度约 1.15e-9，完全满足 SDT 计算需求，且不依赖任何外部库。
+   -------------------------------------------------------------------------- */
+function zScore(p){
+  // 边界保护：避免 log(0) 造成 Infinity（正常流程中已被对数线性修正保护）
+  if(p <= 0) p = 1e-12;
+  if(p >= 1) p = 1 - 1e-12;
+
+  const a = [-3.969683028665376e+01,  2.209460984245205e+02, -2.759285104469687e+02,
+              1.383577518672690e+02, -3.066479806614716e+01,  2.506628277459239e+00];
+  const b = [-5.447609879822406e+01,  1.615858368580409e+02, -1.556989798598866e+02,
+              6.680131188771972e+01, -1.328068155288572e+01];
+  const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00,
+             -2.549732539343734e+00,  4.374664141464968e+00,  2.938163982698783e+00];
+  const d = [ 7.784695709041462e-03,  3.224671290700398e-01,  2.445134137142996e+00,
+              3.754408661907416e+00];
+
+  const pLow  = 0.02425;       // 低尾临界值
+  const pHigh = 1 - pLow;      // 高尾临界值
+
+  let q, r;
+
+  // 低尾区域
+  if(p < pLow){
+    q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
+           ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1);
+  }
+  // 中段区域
+  if(p <= pHigh){
+    q = p - 0.5;
+    r = q * q;
+    return (((((a[0]*r + a[1])*r + a[2])*r + a[3])*r + a[4])*r + a[5]) * q /
+           (((((b[0]*r + b[1])*r + b[2])*r + b[3])*r + b[4])*r + 1);
+  }
+  // 高尾区域
+  q = Math.sqrt(-2 * Math.log(1 - p));
+  return -(((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) /
+          ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1);
+}
+
+/* --------------------------------------------------------------------------
+   正态分布工具（供加分项「概念实验室」绘图使用）
+   -------------------------------------------------------------------------- */
+
+/** 互补误差函数 erfc(x)：Chebyshev 展开，机器精度级别（NR3 的 erfccheb 算法，自行实现） */
+function erfc(x){
+  // 利用奇偶关系 erfc(-x) = 2 - erfc(x)，把参数搬到非负区间
+  if(x < 0) return 2 - erfc(-x);
+
+  const cof = [
+    -1.3026537197817094,  6.4196979235649026e-1,  1.9476473204185836e-2,
+    -9.561514786808631e-3, -9.46595344482036e-4,  3.66839497852761e-4,
+     4.2523324806907e-5,  -2.0278578112534e-5,    -1.624290004647e-6,
+     1.303655835580e-6,    1.5626441722e-8,       -8.5238095915e-8,
+     6.529054439e-9,       5.059343495e-9,        -9.91364156e-10,
+    -2.27365122e-10,       9.6467911e-11,          2.394038e-12,
+    -6.886027e-12,         8.94487e-13,            3.13092e-13,
+    -1.12708e-13,          3.81e-16,               7.106e-15
+  ];
+
+  const t  = 2 / (2 + x);
+  const ty = 4 * t - 2;
+  let d = 0, dd = 0;
+  for(let j = cof.length - 1; j > 0; j--){
+    const tmp = d;
+    d  = ty * d - dd + cof[j];
+    dd = tmp;
+  }
+  return t * Math.exp(-x * x + 0.5 * (cof[0] + ty * d) - dd);
+}
+
+/** 标准正态累积分布函数 Φ(x) */
+function normCdf(x){
+  return 0.5 * erfc(-x / Math.SQRT2);
+}
+
+/** 正态概率密度函数 N(mu, 1) 在 x 处的值 */
+function normPdf(x, mu){
+  const z = x - mu;
+  return Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+}
+
+/* --------------------------------------------------------------------------
+   页面切换
+   -------------------------------------------------------------------------- */
+function showPage(name){
+  ['page-start','page-game','page-result'].forEach(function(id){
+    $(id).classList.toggle('is-active', id === 'page-' + name);
+  });
+  // 切页后回到顶部；部分老浏览器不支持 scrollTo 的配置对象，做一层保护
+  try{
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }catch(e){
+    window.scrollTo(0, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   试次生成
+   -------------------------------------------------------------------------- */
+/**
+ * 生成一个试次：
+ * 1) 先按 P(S)=0.30 决定强化玻璃在哪一侧；
+ * 2) 再按当前难度给两块玻璃分配「亮度」——
+ *    强化玻璃加上 Δ 的亮度增益，两块玻璃各自叠加 ±σ 的感知噪声。
+ *    难度越高 → Δ 越小、σ 越大 → 两块玻璃越难分辨 → d' 越低。
+ */
+function buildTrial(){
+  const cfg = CONFIG.DIFFICULTY[state.difficulty];
+
+  // 步骤 1：先验概率决定强化玻璃位置（两侧都是恰好一块强化玻璃）
+  const reinforcedSide = Math.random() < CONFIG.P_SIGNAL ? 'left' : 'right';
+
+  // 步骤 2：计算两块玻璃的实际亮度
+  const noiseLeft  = rand(-cfg.sigma, cfg.sigma);
+  const noiseRight = rand(-cfg.sigma, cfg.sigma);
+
+  const lumLeft  = CONFIG.BASE_LUM + (reinforcedSide === 'left'  ? cfg.delta : 0) + noiseLeft;
+  const lumRight = CONFIG.BASE_LUM + (reinforcedSide === 'right' ? cfg.delta : 0) + noiseRight;
+
+  return { reinforcedSide: reinforcedSide, lum: { left: lumLeft, right: lumRight } };
+}
+
+/**
+ * 根据亮度绘制玻璃面板。
+ * 普通玻璃 → 深灰蓝半透明；强化玻璃 → 更亮、偏白偏绿半透明。
+ */
+function paintPanel(el, lum, isStrong){
+  const L = clamp(Math.round(lum), 26, 250);
+  // 强化玻璃偏绿、普通玻璃偏蓝灰，模拟两种玻璃的材质差异
+  const r = clamp(Math.round(L * (isStrong ? 0.98 : 0.96)), 0, 255);
+  const g = clamp(Math.round(L * (isStrong ? 1.10 : 1.00)), 0, 255);
+  const b = clamp(Math.round(L * (isStrong ? 1.03 : 1.08)), 0, 255);
+  // 底部稍微压暗，做出玻璃的厚度感
+  const r2 = Math.round(r * 0.62), g2 = Math.round(g * 0.66), b2 = Math.round(b * 0.72);
+  const a  = isStrong ? 0.72 : 0.58;
+
+  el.style.background =
+    'linear-gradient(165deg,' +
+      'rgba(' + r  + ',' + g  + ',' + b  + ',' + (a + 0.10).toFixed(2) + ') 0%,' +
+      'rgba(' + r  + ',' + g  + ',' + b  + ',' + a.toFixed(2) + ') 46%,' +
+      'rgba(' + r2 + ',' + g2 + ',' + b2 + ',' + (a * 0.75).toFixed(2) + ') 100%)';
+}
+
+/* --------------------------------------------------------------------------
+   游戏主流程
+   -------------------------------------------------------------------------- */
+const panelLeft  = $('panelLeft');
+const panelRight = $('panelRight');
+const board      = $('board');
+
+/** 开始实验：重置状态并进入第一个试次 */
+function startExperiment(){
+  state.trialNo = 0;
+  state.counts  = { hit:0, miss:0, fa:0, cr:0 };
+  state.over    = false;
+  state.locked  = true;   // 切换页面时先锁住，避免误点
+
+  $('hudDiff').textContent      = CONFIG.DIFFICULTY[state.difficulty].label;
+  $('hudTrialTotal').textContent = CONFIG.TOTAL_TRIALS;
+
+  showPage('game');
+
+  // 一个小延时，让页面切换动画走完再呈现第一试次
+  setTimeout(function(){ nextTrial(); }, 120);
+}
+
+/** 进入下一个试次 */
+function nextTrial(){
+  if(state.over) return;
+
+  // 已经完成全部试次 → 结算
+  if(state.trialNo >= CONFIG.TOTAL_TRIALS){
+    finishExperiment(false);
+    return;
+  }
+
+  state.trialNo += 1;
+  state.current = buildTrial();
+  state.locked  = false;
+
+  renderTrial();
+  updateHUD();
+}
+
+/** 渲染当前试次 */
+function renderTrial(){
+  const t = state.current;
+  const isLeftStrong = (t.reinforcedSide === 'left');
+
+  // 重置面板样式
+  [panelLeft, panelRight].forEach(function(p){
+    p.className = 'panel';
+  });
+  board.classList.remove('board-locked');
+  hideToast();
+
+  paintPanel(panelLeft,  t.lum.left,  isLeftStrong);
+  paintPanel(panelRight, t.lum.right, !isLeftStrong);
+
+  // 短暂淡入，模拟「迈出下一步」的节奏
+  board.style.opacity = '0';
+  board.style.transform = 'translateY(10px)';
+  requestAnimationFrame(function(){
+    board.style.transition = 'opacity .28s ease, transform .28s ease';
+    board.style.opacity = '1';
+    board.style.transform = 'translateY(0)';
+  });
+
+  $('hudStatus').textContent = '站在桥上…';
+}
+
+/** 刷新顶部状态栏 */
+function updateHUD(){
+  $('hudTrialNow').textContent = state.trialNo;
+  $('hudAlive').textContent    = state.counts.hit + state.counts.cr;
+  $('hudTrialTotal').textContent = CONFIG.TOTAL_TRIALS;
+  $('progressBar').style.width = (state.trialNo / CONFIG.TOTAL_TRIALS * 100) + '%';
+}
+
+/* --------------------------------------------------------------------------
+   玩家做出选择
+   -------------------------------------------------------------------------- */
+function handleChoice(side){
+  if(state.locked || state.over || !state.current) return;
+  state.locked = true;
+  board.classList.add('board-locked');
+
+  const t = state.current;
+  const isCorrect = (side === t.reinforcedSide);
+  const clickedPanel = (side === 'left') ? panelLeft : panelRight;
+  const truthPanel   = (t.reinforcedSide === 'left') ? panelLeft : panelRight;
+
+  /* ------- 2×2 计分（把「点击左边」记为回答“是”） ------- */
+  let cell;
+  if(t.reinforcedSide === 'left'){
+    // 信号试次：左侧是强化玻璃
+    cell = isCorrect ? 'hit' : 'miss';
+  }else{
+    // 噪音试次：右侧是强化玻璃，点左即为虚报
+    cell = (side === 'left') ? 'fa' : 'cr';
+  }
+  state.counts[cell] += 1;
+
+  /* ------- 动画与反馈 ------- */
+  if(isCorrect){
+    // 踩对：绿色脉冲 + 安全提示，短暂延迟后进入下一试次
+    clickedPanel.classList.add('is-safe');
+    $('hudStatus').textContent = '安全通过';
+    showToast('safe', '✅ 安全！');
+    setTimeout(function(){
+      if(state.over) return;
+      hideToast();
+      nextTrial();
+    }, 850);
+  }else{
+    // 踩错：玻璃碎裂 + 坠落旋转 + 揭示正确的玻璃，1.5 秒后进入结果页
+    state.over = true;
+    // is-crack 作用在面板表面（伪元素闪白），is-fall 作用在面板本身（下落旋转），
+    // 两者作用对象不同，可以同时触发，观感上就是「咔嚓碎掉并坠下悬崖」。
+    clickedPanel.classList.add('is-crack');
+    clickedPanel.classList.add('is-fall');
+    truthPanel.classList.add('is-truth');
+
+    $('hudStatus').textContent = '坠落中…';
+    showToast('danger', '❌ 踩空了！');
+    updateHUD();
+
+    setTimeout(function(){
+      hideToast();
+      finishExperiment(true);
+    }, 1500);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   结算与 SDT 计算
+   -------------------------------------------------------------------------- */
+/**
+ * 计算结果。
+ * @param {boolean} fell 是否因坠落而结束
+ */
+function finishExperiment(fell){
+  const c = state.counts;
+  const nTrial = state.trialNo;          // 总有效试次
+  const nSignal = c.hit + c.miss;        // 信号总数（左侧是强化玻璃）
+  const nNoise  = c.fa  + c.cr;          // 噪音总数（右侧是强化玻璃）
+
+  // —— 未修正的原始命中率 / 虚报率 ——
+  const pHraw = nSignal > 0 ? c.hit / nSignal : 0;
+  const pFraw = nNoise  > 0 ? c.fa  / nNoise  : 0;
+
+  // —— 对数线性（log-linear）极值修正 ——
+  // 目的：避免 H=0 或 FA=0 时 Z 分数趋于 ±∞
+  // P(H)  = (Hit + 0.5) / (信号总数 + 1)
+  // P(FA) = (FA  + 0.5) / (噪音总数 + 1)
+  const pH = (c.hit + 0.5) / (nSignal + 1);
+  const pF = (c.fa  + 0.5) / (nNoise  + 1);
+
+  // —— Z 分数 ——
+  const zH = zScore(pH);
+  const zF = zScore(pF);
+
+  // —— 辨别力指数 d' 与判断标准 c ——
+  const dPrime = zH - zF;
+  const cBias  = -0.5 * (zH + zF);
+
+  const accuracy = nTrial > 0 ? (c.hit + c.cr) / nTrial : 0;
+
+  const result = {
+    fell: fell, nTrial: nTrial, nSignal: nSignal, nNoise: nNoise,
+    counts: c, pHraw: pHraw, pFraw: pFraw, pH: pH, pF: pF,
+    zH: zH, zF: zF, dPrime: dPrime, cBias: cBias, accuracy: accuracy
+  };
+
+  // ① 常规结果：矩阵 + SDT 指标
+  renderResult(result);
+
+  // ② 加分项①：概念实验室（滑块初始值 = 本局实测的 d′ 与 c）
+  mountLab(result);
+
+  // ③ 加分项②：把本局写入历史战绩，并渲染多局对比
+  const now = new Date();
+  const p2 = function(n){ return (n < 10 ? '0' : '') + n; };
+  pushHistory({
+    time: p2(now.getMonth() + 1) + '-' + p2(now.getDate()) + ' ' + p2(now.getHours()) + ':' + p2(now.getMinutes()),
+    difficulty: state.difficulty,
+    trials: nTrial,
+    fell: fell,
+    hit: c.hit, miss: c.miss, fa: c.fa, cr: c.cr,
+    dPrime: dPrime, cBias: cBias, accuracy: accuracy
+  });
+  renderHistory();
+
+  showPage('result');
+}
+
+/* --------------------------------------------------------------------------
+   结果页渲染
+   -------------------------------------------------------------------------- */
+function renderResult(r){
+  const c = r.counts;
+  const diffLabel = CONFIG.DIFFICULTY[state.difficulty].label;
+
+  /* ---- 顶部横幅 ---- */
+  $('resultBanner').innerHTML =
+    '<div class="banner ' + (r.fell ? 'lose' : 'win') + '">' +
+      (r.fell
+        ? '💀 你在第 ' + r.nTrial + ' 个试次踩碎了玻璃，坠入深渊'
+        : '🎉 你成功走完了全部 ' + r.nTrial + ' 个试次！') +
+    '</div>';
+
+  /* ---- 概览 ---- */
+  $('resultSummary').innerHTML =
+    '<div class="card">' +
+      '<h2>实验概览</h2>' +
+      '<p>难度：<b>' + diffLabel + '</b>　|　' +
+         '总有效试次：<b class="hl-teal">' + r.nTrial + '</b> / ' + CONFIG.TOTAL_TRIALS +
+         '　|　通过：<b>' + (c.hit + c.cr) + '</b> 次　|　坠落：<b class="hl-pink">' +
+         (r.fell ? (c.miss + c.fa) : 0) + '</b> 次</p>' +
+      '<p>其中「信号试次」（强化玻璃在左侧）共 <b>' + r.nSignal + '</b> 次，' +
+         '「噪音试次」（强化玻璃在右侧）共 <b>' + r.nNoise + '</b> 次。</p>' +
+    '</div>';
+
+  /* ---- 2×2 矩阵 ---- */
+  $('resultMatrix').innerHTML =
+    '<div class="card">' +
+      '<h2>2 × 2 判断矩阵</h2>' +
+      '<p style="font-size:13px;color:#8b98ab">' +
+        '「点击左侧的玻璃」计为回答<b>“是（左边是强化玻璃）”</b>；「点击右侧」计为回答<b>“否”</b>。' +
+        '这是将二择一任务转换为是非判断矩阵的标准记法。' +
+      '</p>' +
+      '<div style="overflow-x:auto">' +
+      '<table class="matrix">' +
+        '<thead><tr>' +
+          '<th style="width:22%"></th>' +
+          '<th>实际：左侧是强化玻璃<br><small>信号 Signal · P(S)=30%</small></th>' +
+          '<th>实际：右侧是强化玻璃<br><small>噪音 Noise · P(N)=70%</small></th>' +
+          '<th style="width:12%">合计</th>' +
+        '</tr></thead>' +
+        '<tbody>' +
+          '<tr>' +
+            '<th>判断：踩左边<br><small>回答「是」</small></th>' +
+            '<td class="cell-hit">击中 Hit<b>' + c.hit + '</b></td>' +
+            '<td class="cell-fa">虚报 FA<b>' + c.fa + '</b></td>' +
+            '<td>' + (c.hit + c.fa) + '</td>' +
+          '</tr>' +
+          '<tr>' +
+            '<th>判断：踩右边<br><small>回答「否」</small></th>' +
+            '<td class="cell-miss">漏报 Miss<b>' + c.miss + '</b></td>' +
+            '<td class="cell-cr">正确拒绝 CR<b>' + c.cr + '</b></td>' +
+            '<td>' + (c.miss + c.cr) + '</td>' +
+          '</tr>' +
+          '<tr>' +
+            '<th>合计</th>' +
+            '<td>' + r.nSignal + '</td>' +
+            '<td>' + r.nNoise + '</td>' +
+            '<td>' + r.nTrial + '</td>' +
+          '</tr>' +
+        '</tbody>' +
+      '</table>' +
+      '</div>' +
+      '<div class="formula">' +
+        '原始比率（未修正）：\n' +
+        '  P(Hit)  = ' + c.hit + ' / ' + r.nSignal + ' = ' + fmt(r.pHraw) + '\n' +
+        '  P(FA)   = ' + c.fa  + ' / ' + r.nNoise  + ' = ' + fmt(r.pFraw) + '\n' +
+        '对数线性修正后：\n' +
+        '  P(H)\'  = (' + c.hit + ' + 0.5) / (' + r.nSignal + ' + 1) = ' + fmt(r.pH) + '\n' +
+        '  P(FA)\' = (' + c.fa  + ' + 0.5) / (' + r.nNoise  + ' + 1) = ' + fmt(r.pF) +
+      '</div>' +
+    '</div>';
+
+  /* ---- SDT 指标卡片 ---- */
+  const cDesc = r.cBias > 0.15
+    ? '偏保守：倾向于回答「否」（多踩右边）'
+    : (r.cBias < -0.15 ? '偏冒进：倾向于回答「是」（多踩左边）' : '几乎中立，对两侧没有明显偏好');
+
+  const dDesc = r.dPrime >= 1.5 ? '辨别力较强'
+              : (r.dPrime >= 0.6 ? '辨别力一般' : '几乎无法分辨，接近随机水平');
+
+  $('resultMetrics').innerHTML =
+    '<div class="card">' +
+      '<h2>信号检测论指标</h2>' +
+      '<div class="metrics">' +
+        '<div class="metric">' +
+          '<div class="m-label">击中率 P(H)</div>' +
+          '<div class="m-value">' + fmt(r.pH) + '</div>' +
+          '<div class="m-sub">Z(H) = ' + fmt(r.zH) + '</div>' +
+        '</div>' +
+        '<div class="metric">' +
+          '<div class="m-label">虚报率 P(FA)</div>' +
+          '<div class="m-value">' + fmt(r.pF) + '</div>' +
+          '<div class="m-sub">Z(FA) = ' + fmt(r.zF) + '</div>' +
+        '</div>' +
+        '<div class="metric accent">' +
+          '<div class="m-label">辨别力指数 d\'</div>' +
+          '<div class="m-value">' + fmt(r.dPrime) + '</div>' +
+          '<div class="m-sub">' + dDesc + '</div>' +
+        '</div>' +
+        '<div class="metric accent-pink">' +
+          '<div class="m-label">判断标准 c</div>' +
+          '<div class="m-value">' + fmt(r.cBias) + '</div>' +
+          '<div class="m-sub">' + cDesc + '</div>' +
+        '</div>' +
+        '<div class="metric">' +
+          '<div class="m-label">总有效试次</div>' +
+          '<div class="m-value">' + r.nTrial + '</div>' +
+          '<div class="m-sub">最多 ' + CONFIG.TOTAL_TRIALS + ' 次</div>' +
+        '</div>' +
+        '<div class="metric">' +
+          '<div class="m-label">总正确率</div>' +
+          '<div class="m-value">' + (r.accuracy * 100).toFixed(1) + '%</div>' +
+          '<div class="m-sub">(Hit + CR) / 试次</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="formula">' +
+        'd\' = Z(H) − Z(FA) = ' + fmt(r.zH) + ' − (' + fmt(r.zF) + ') = ' + fmt(r.dPrime) + '\n' +
+        'c  = −0.5 × [ Z(H) + Z(FA) ] = −0.5 × [ ' + fmt(r.zH) + ' + (' + fmt(r.zF) + ') ] = ' + fmt(r.cBias) +
+      '</div>' +
+    '</div>';
+
+  /* ---- 解读与提醒 ---- */
+  const warn = (r.nSignal < 2 || r.nNoise < 2)
+    ? '<p class="hl-pink">⚠️ 本局有效试次偏少（信号 ' + r.nSignal + ' 次 / 噪音 ' + r.nNoise +
+      ' 次），d\' 与 c 的估计非常不稳定，建议再跑几局取平均。</p>'
+    : '';
+
+  $('resultNotes').innerHTML =
+    '<div class="card">' +
+      '<h2>怎么读这组数据</h2>' +
+      '<p><b class="hl-teal">d\'（辨别力）</b>：衡量你「能不能分辨」出哪块玻璃更亮。' +
+        'd\' = 0 表示完全在瞎猜；d\' 越大表示亮度线索在你眼里越清晰。它只反映<b>敏感度</b>，与你的偏好无关。</p>' +
+      '<p><b class="hl-pink">c（判断标准 / 反应偏向）</b>：衡量你「敢不敢赌」。' +
+        'c &gt; 0 表示你偏保守（更常回答「否」，即多踩右边）；c &lt; 0 表示你偏冒进（更常回答「是」，即多踩左边）。' +
+        '由于本实验的强化玻璃有 70% 概率在右侧，一个理性的玩家本来就应当把 c 推向正值。</p>' +
+      '<p><b>为什么必须做极值修正？</b>若你一次虚报都没有（FA = 0），那么 P(FA) = 0，' +
+        'Z(FA) 会等于 −∞，d\' 就变成 +∞ 而无法使用。' +
+        '对数线性修正把每个格子加 0.5、分母加 1，让概率永远落在 (0,1) 开区间内。</p>' +
+      warn +
+    '</div>';
+}
+
+/* ==========================================================================
+   ★ 加分项 ①：SDT 概念实验室（交互式概念可视化）
+   --------------------------------------------------------------------------
+   拖动 d′ 与 c 两个滑块，实时看到：
+     · 信号分布与噪音分布的重叠程度如何随 d′ 变化（d′ 越大越分得开）
+     · 判断标准 x_c 的位置如何随 c 变化，以及它如何切出 P(H) 与 P(FA)
+     · ROC 曲线的弯曲程度由 d′ 决定，而工作点在曲线上的位置由 c 决定
+   数学约定：噪音分布 N(0,1)、信号分布 N(d′,1)，判定阈值 x_c = c + d′/2。
+   （推导：d′ = Z(H) − Z(FA)，Z(H) = d′ − x_c，Z(FA) = −x_c，
+     代入 c = −0.5·[Z(H)+Z(FA)] 即得 x_c = c + d′/2）
+   ========================================================================== */
+
+/** 实验室当前参数（初始值取自玩家本局的实测 d′ 与 c） */
+const lab = { d: 1, c: 0, actualD: 1, actualC: 0, pf: 0, ph: 0.5, hasActual: false };
+
+/**
+ * 绘制「信号分布 vs 噪音分布」图。
+ * 两条正态曲线 + 右侧阴影（P(H) 击中区 / P(FA) 虚报区）+ 判定阈值虚线。
+ */
+function chartDistribution(d, c){
+  const W = 470, H = 268;
+  const pad = { l: 16, r: 16, t: 30, b: 46 };
+  const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+
+  const xc = c + d / 2;                    // 判断标准在数轴上的位置
+  const lo = Math.min(0, d) - 3.4;         // 数轴范围：保证两条分布的 3.4σ 都在视野内
+  const hi = Math.max(0, d) + 3.4;
+  const X = function(x){ return pad.l + (x - lo) / (hi - lo) * iw; };
+  const yMax = normPdf(0, 0) * 1.20;       // 纵向留 20% 顶部空间
+  const Y = function(y){ return pad.t + ih - y / yMax * ih; };
+  const base = Y(0);
+
+  // 曲线采样
+  const N = 170;
+  let pathN = '', pathS = '';
+  for(let i = 0; i <= N; i++){
+    const x = lo + (hi - lo) * i / N;
+    pathN += (i ? 'L' : 'M') + X(x).toFixed(2) + ',' + Y(normPdf(x, 0)).toFixed(2);
+    pathS += (i ? 'L' : 'M') + X(x).toFixed(2) + ',' + Y(normPdf(x, d)).toFixed(2);
+  }
+  // 阈值以右的阴影面积
+  const area = function(mu){
+    const from = Math.max(xc, lo), to = hi;
+    if(from >= to) return '';
+    let p = '';
+    for(let i = 0; i <= 70; i++){
+      const x = from + (to - from) * i / 70;
+      p += (i ? 'L' : 'M') + X(x).toFixed(2) + ',' + Y(normPdf(x, mu)).toFixed(2);
+    }
+    return p + 'L' + X(to).toFixed(2) + ',' + base.toFixed(2) +
+               'L' + X(from).toFixed(2) + ',' + base.toFixed(2) + 'Z';
+  };
+
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="信号分布与噪音分布">';
+  s += '<rect x="' + pad.l + '" y="' + pad.t + '" width="' + iw + '" height="' + ih + '" rx="8" fill="#0e141c" stroke="#26303e"/>';
+  // 阴影（先画，压在曲线下面）
+  s += '<path d="' + area(0) + '" fill="rgba(255,46,106,.30)"/>';
+  s += '<path d="' + area(d) + '" fill="rgba(40,224,125,.30)"/>';
+  s += '<line x1="' + pad.l + '" y1="' + base + '" x2="' + (pad.l + iw) + '" y2="' + base + '" stroke="#2f3a49"/>';
+  // 两条曲线
+  s += '<path d="' + pathN + '" fill="none" stroke="#ff2e6a" stroke-width="2.2"/>';
+  s += '<path d="' + pathS + '" fill="none" stroke="#28e07d" stroke-width="2.2"/>';
+
+  // 判定阈值虚线 + 顶部标签
+  if(xc > lo && xc < hi){
+    const x = X(xc);
+    s += '<line x1="' + x + '" y1="' + pad.t + '" x2="' + x + '" y2="' + base + '" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="5 4" opacity=".9"/>';
+    const lx = clamp(x, pad.l + 52, pad.l + iw - 52);
+    s += '<text x="' + lx + '" y="' + (pad.t - 10) + '" fill="#ffffff" font-size="12" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">判断标准 x_c = ' + xc.toFixed(2) + '</text>';
+  }
+  // 两个均值处的标记点
+  const means = [[0, '#ff2e6a'], [d, '#28e07d']];
+  for(let i = 0; i < means.length; i++){
+    if(means[i][0] < lo || means[i][0] > hi) continue;
+    s += '<circle cx="' + X(means[i][0]) + '" cy="' + base + '" r="3.4" fill="' + means[i][1] + '"/>';
+  }
+  // d′ 双箭头（画在基线下方，避开曲线）
+  const yD = base + 22;
+  const x0 = X(Math.min(0, d)), x1 = X(Math.max(0, d));
+  s += '<line x1="' + x0 + '" y1="' + yD + '" x2="' + x1 + '" y2="' + yD + '" stroke="#7f8fa3" stroke-width="1.2"/>';
+  s += '<line x1="' + x0 + '" y1="' + (yD - 5) + '" x2="' + x0 + '" y2="' + (yD + 5) + '" stroke="#7f8fa3" stroke-width="1.2"/>';
+  s += '<line x1="' + x1 + '" y1="' + (yD - 5) + '" x2="' + x1 + '" y2="' + (yD + 5) + '" stroke="#7f8fa3" stroke-width="1.2"/>';
+  const mid = (x0 + x1) / 2;
+  s += '<rect x="' + (mid - 44) + '" y="' + (yD - 10) + '" width="88" height="19" rx="9" fill="#0b1017" stroke="#26303e"/>';
+  s += '<text x="' + mid + '" y="' + (yD + 4) + '" fill="#c8d3e2" font-size="12" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">d\u2032 = ' + d.toFixed(2) + '</text>';
+  s += '<text x="' + pad.l + '" y="' + (H - 8) + '" fill="#5f6b7c" font-size="11" font-family="ui-monospace,Menlo,monospace">← 线索强度 x →</text>';
+  s += '</svg>';
+  return s;
+}
+
+/**
+ * 绘制 ROC 曲线。
+ * 理论曲线由 d′ 唯一决定（d′ 越大越向左上凸起）；
+ * 滑块设定的是 c，它决定工作点在这条曲线上的位置；
+ * 空心红圈是玩家本局的实测数据点。
+ */
+function chartRoc(d, c, pfa, ph){
+  const S = 300;
+  const pad = { l: 46, r: 18, t: 18, b: 42 };
+  const iw = S - pad.l - pad.r, ih = S - pad.t - pad.b;
+  const X = function(v){ return pad.l + v * iw; };
+  const Y = function(v){ return pad.t + ih - v * ih; };
+
+  let s = '<svg viewBox="0 0 ' + S + ' ' + S + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ROC 曲线">';
+  s += '<rect x="' + pad.l + '" y="' + pad.t + '" width="' + iw + '" height="' + ih + '" fill="#0e141c" stroke="#26303e"/>';
+  // 网格
+  for(let i = 1; i < 4; i++){
+    const v = i / 4;
+    s += '<line x1="' + X(v) + '" y1="' + pad.t + '" x2="' + X(v) + '" y2="' + (pad.t + ih) + '" stroke="#1c242f"/>';
+    s += '<line x1="' + pad.l + '" y1="' + Y(v) + '" x2="' + (pad.l + iw) + '" y2="' + Y(v) + '" stroke="#1c242f"/>';
+  }
+  // d′ = 0 的对角参考线（纯猜测线）
+  s += '<line x1="' + X(0) + '" y1="' + Y(0) + '" x2="' + X(1) + '" y2="' + Y(1) + '" stroke="#4a5768" stroke-width="1.2" stroke-dasharray="5 4"/>';
+  // 刻度
+  const ticks = [0, 0.5, 1];
+  for(let i = 0; i < ticks.length; i++){
+    const v = ticks[i];
+    s += '<text x="' + X(v) + '" y="' + (pad.t + ih + 17) + '" fill="#5f6b7c" font-size="10.5" text-anchor="middle" font-family="ui-monospace,Menlo,monospace">' + v.toFixed(1) + '</text>';
+    s += '<text x="' + (pad.l - 9) + '" y="' + (Y(v) + 4) + '" fill="#5f6b7c" font-size="10.5" text-anchor="end" font-family="ui-monospace,Menlo,monospace">' + v.toFixed(1) + '</text>';
+  }
+  // 理论 ROC：令阈值 x_c 从 +4.2 扫到 −4.2
+  let roc = '';
+  for(let i = 0; i <= 220; i++){
+    const xc = 4.2 - 8.4 * i / 220;
+    roc += (i ? 'L' : 'M') + X(1 - normCdf(xc)).toFixed(2) + ',' + Y(1 - normCdf(xc - d)).toFixed(2);
+  }
+  s += '<path d="' + roc + '" fill="none" stroke="#1fe3c2" stroke-width="2.2"/>';
+
+  // 当前滑块工作点
+  const xc = c + d / 2;
+  const pfC = 1 - normCdf(xc), phC = 1 - normCdf(xc - d);
+  s += '<line x1="' + X(pfC) + '" y1="' + Y(phC) + '" x2="' + X(pfC) + '" y2="' + Y(0) + '" stroke="#ffffff" stroke-width="1" stroke-dasharray="3 3" opacity=".4"/>';
+  s += '<line x1="' + X(pfC) + '" y1="' + Y(phC) + '" x2="' + X(0) + '" y2="' + Y(phC) + '" stroke="#ffffff" stroke-width="1" stroke-dasharray="3 3" opacity=".4"/>';
+  s += '<circle cx="' + X(pfC) + '" cy="' + Y(phC) + '" r="5" fill="#ffffff" stroke="#0b1017" stroke-width="1.5"/>';
+
+  // 玩家实测数据点（空心红圈）
+  if(isFinite(pfa) && isFinite(ph)){
+    s += '<circle cx="' + X(clamp(pfa, 0, 1)) + '" cy="' + Y(clamp(ph, 0, 1)) + '" r="5.6" fill="none" stroke="#ff2e6a" stroke-width="2.2"/>';
+  }
+  // 轴标题
+  s += '<text x="' + (pad.l + iw / 2) + '" y="' + (S - 8) + '" fill="#8b98ab" font-size="11.5" text-anchor="middle">P(FA) 虚报率 →</text>';
+  s += '<text x="14" y="' + (pad.t + ih / 2) + '" fill="#8b98ab" font-size="11.5" text-anchor="middle" transform="rotate(-90 14 ' + (pad.t + ih / 2) + ')">P(H) 击中率 →</text>';
+  s += '</svg>';
+  return s;
+}
+
+/** 搭建实验室卡片（只建一次骨架，滑块不重建，避免拖动被打断） */
+function mountLab(r){
+  lab.d = isFinite(r.dPrime) ? clamp(r.dPrime, 0, 4) : 1;
+  lab.c = isFinite(r.cBias)  ? clamp(r.cBias, -3, 3) : 0;
+  lab.actualD = lab.d;
+  lab.actualC = lab.c;
+  lab.pf = isFinite(r.pF) ? r.pF : 0;
+  lab.ph = isFinite(r.pH) ? r.pH : 0.5;
+  lab.hasActual = r.nTrial > 0;
+
+  $('resultLab').innerHTML =
+    '<div class="card">' +
+      '<h2>概念实验室 · 拖动滑块，看 d\u2032 与 c 各自在做什么</h2>' +
+      '<div class="lab-grid">' +
+        '<div>' +
+          '<p class="chart-title">① 信号分布与噪音分布（阴影 = 判定为「是」的那部分概率）</p>' +
+          '<div class="chart-box" id="chartDist"></div>' +
+          '<div class="legend">' +
+            '<span><i style="background:#ff2e6a"></i>噪音分布 N(0, 1)</span>' +
+            '<span><i style="background:#28e07d"></i>信号分布 N(d\u2032, 1)</span>' +
+            '<span><i style="background:rgba(255,46,106,.45)"></i>虚报区 → P(FA)</span>' +
+            '<span><i style="background:rgba(40,224,125,.45)"></i>击中区 → P(H)</span>' +
+          '</div>' +
+        '</div>' +
+        '<div>' +
+          '<p class="chart-title">② ROC 曲线（曲线弯不弯看 d\u2032，点在哪儿看 c）</p>' +
+          '<div class="chart-box" id="chartRoc"></div>' +
+          '<div class="legend">' +
+            '<span><i style="background:#1fe3c2"></i>理论 ROC</span>' +
+            '<span><i style="background:#4a5768"></i>d\u2032 = 0 纯猜测线</span>' +
+            '<span><i style="background:#ffffff"></i>滑块工作点</span>' +
+            '<span><i style="background:#ff2e6a"></i>你的实测数据</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sliders">' +
+        '<div class="slider-row">' +
+          '<label>d\u2032 辨别力</label>' +
+          '<input type="range" id="sliderD" min="0" max="4" step="0.05" value="' + lab.d + '" aria-label="辨别力 d-prime">' +
+          '<output id="outD"></output>' +
+        '</div>' +
+        '<div class="slider-row">' +
+          '<label>c 判断标准</label>' +
+          '<input type="range" id="sliderC" min="-3" max="3" step="0.05" value="' + lab.c + '" aria-label="判断标准 c">' +
+          '<output id="outC"></output>' +
+        '</div>' +
+      '</div>' +
+      '<div class="formula" id="labReadout"></div>' +
+      '<div style="margin-top:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">' +
+        '<button type="button" class="btn btn-ghost" id="btnLabReset" style="font-size:13px;padding:9px 16px">\u21ba 复位到我的实测值</button>' +
+        '<span style="font-size:12.5px;color:#5f6b7c;line-height:1.7">' +
+          '要点：<b style="color:#c8d3e2">d\u2032 决定两条分布分得开不开</b>，所以它决定 ROC 曲线弯不弯；' +
+          '<b style="color:#c8d3e2">c 只决定刀切在哪</b>，它让工作点沿着同一条 ROC 曲线滑动 —— 这正是「敏感度」与「偏向」的分离。' +
+        '</span>' +
+      '</div>' +
+    '</div>';
+
+  $('sliderD').addEventListener('input', function(){ lab.d = parseFloat(this.value); drawLab(); });
+  $('sliderC').addEventListener('input', function(){ lab.c = parseFloat(this.value); drawLab(); });
+  $('btnLabReset').addEventListener('click', function(){
+    lab.d = lab.actualD;
+    lab.c = lab.actualC;
+    $('sliderD').value = lab.d;
+    $('sliderC').value = lab.c;
+    drawLab();
+  });
+
+  drawLab();
+}
+
+/** 刷新实验室的两张图与数值（拖动滑块时高频调用，因此不重建 DOM 骨架） */
+function drawLab(){
+  const d = lab.d, c = lab.c;
+  $('chartDist').innerHTML = chartDistribution(d, c);
+  $('chartRoc').innerHTML  = chartRoc(d, c, lab.pf, lab.ph);
+  $('outD').textContent = d.toFixed(2);
+  $('outC').textContent = (c >= 0 ? '+' : '') + c.toFixed(2);
+
+  const xc = c + d / 2;
+  const pH = 1 - normCdf(xc - d);
+  const pF = 1 - normCdf(xc);
+
+  let txt = '当前设定：d\u2032 = ' + d.toFixed(2) + '　c = ' + c.toFixed(2) + '\n' +
+            '判断标准位置：x_c = c + d\u2032/2 = ' + xc.toFixed(2) + '\n' +
+            '理论表现：P(H) = ' + (pH * 100).toFixed(1) + '%　P(FA) = ' + (pF * 100).toFixed(1) + '%　' +
+            '两者之差 = ' + ((pH - pF) * 100).toFixed(1) + '%';
+  if(lab.hasActual){
+    txt += '\n你的实测：P(H) = ' + lab.ph.toFixed(3) + '　P(FA) = ' + lab.pf.toFixed(3) +
+           '　→ 把滑块调回实测值，白点就会与红圈重合';
+  }
+  $('labReadout').textContent = txt;
+}
+
+/* ==========================================================================
+   ★ 加分项 ②：多局数据对比 / 排行榜（localStorage）
+   --------------------------------------------------------------------------
+   注意：以 file:// 协议打开时，部分浏览器（尤其 Safari）会禁用 localStorage。
+   因此这里把读写全部包在 try/catch 里，失败时自动退化为「仅本次会话内存保存」，
+   并如实提示玩家，绝不让存储问题影响实验本身。
+   ========================================================================== */
+const HISTORY_KEY = 'squid-sdt-history-v1';
+const HISTORY_MAX = 30;          // 最多保留最近 30 局
+
+const store = {
+  ok: true,                      // localStorage 是否可用
+  mem: [],                       // 降级用的内存副本
+  load: function(){
+    try{
+      const raw = window.localStorage.getItem(HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){
+      this.ok = false;
+      return this.mem.slice();
+    }
+  },
+  save: function(list){
+    this.mem = list.slice();
+    try{
+      window.localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+    }catch(e){
+      this.ok = false;
+    }
+  },
+  clear: function(){
+    this.mem = [];
+    try{
+      window.localStorage.removeItem(HISTORY_KEY);
+    }catch(e){
+      this.ok = false;
+    }
+  }
+};
+
+/** 追加一局记录（超出上限则丢弃最早的） */
+function pushHistory(rec){
+  const list = store.load();
+  list.push(rec);
+  while(list.length > HISTORY_MAX) list.shift();
+  store.save(list);
+}
+
+/** 渲染「历史战绩」卡片 */
+function renderHistory(){
+  const list = store.load();
+  const box = $('resultHistory');
+
+  if(list.length === 0){
+    box.innerHTML = '<div class="card"><h2>历史战绩</h2>' +
+      '<div class="empty-hint">还没有历史记录。<br>完成一局后，这里会把每一局的 d\u2032 与 c 放在一起对比。</div></div>';
+    return;
+  }
+
+  // —— 汇总统计 ——
+  const best = list.reduce(function(a, b){ return b.dPrime > a.dPrime ? b : a; }, list[0]);
+  const byDiff = {};
+  list.forEach(function(r){
+    if(!byDiff[r.difficulty]) byDiff[r.difficulty] = [];
+    byDiff[r.difficulty].push(r.dPrime);
+  });
+  const avgTxt = Object.keys(byDiff).map(function(k){
+    const arr = byDiff[k];
+    const m = arr.reduce(function(a, b){ return a + b; }, 0) / arr.length;
+    return CONFIG.DIFFICULTY[k].label + ' 平均 ' + m.toFixed(2) + '（n=' + arr.length + '）';
+  }).join('　·　');
+
+  // —— 迷你条形图：每局一条，高度按 d′ 归一化 ——
+  const ds  = list.map(function(r){ return r.dPrime; });
+  const lo  = Math.min(0, Math.min.apply(null, ds));
+  const hi  = Math.max(1, Math.max.apply(null, ds));
+  const span = (hi - lo) || 1;
+  let bars = '';
+  list.forEach(function(r, i){
+    const h = Math.max(4, (r.dPrime - lo) / span * 92);
+    const cls = 'bar' + (r.dPrime < 0 ? ' is-neg' : '') + (r === best ? ' is-best' : '');
+    bars += '<div class="bar-col">' +
+              '<span class="bv">' + r.dPrime.toFixed(2) + '</span>' +
+              '<div class="' + cls + '" style="height:' + h.toFixed(1) + 'px"></div>' +
+              '<span class="bl">#' + (i + 1) + '</span>' +
+            '</div>';
+  });
+
+  // —— 明细表：最新的排最上面 ——
+  let rows = '';
+  for(let i = list.length - 1; i >= 0; i--){
+    const r = list[i];
+    rows += '<tr' + (r === best ? ' class="is-best"' : '') + '>' +
+              '<td>#' + (i + 1) + '</td>' +
+              '<td>' + CONFIG.DIFFICULTY[r.difficulty].label + '</td>' +
+              '<td>' + r.trials + '</td>' +
+              '<td>' + (r.fell ? '💀 坠落' : '🎉 通过') + '</td>' +
+              '<td>' + r.dPrime.toFixed(2) + (r === best ? ' 🏆' : '') + '</td>' +
+              '<td>' + (r.cBias >= 0 ? '+' : '') + r.cBias.toFixed(2) + '</td>' +
+              '<td>' + (r.accuracy * 100).toFixed(1) + '%</td>' +
+              '<td style="color:#5f6b7c">' + r.time + '</td>' +
+            '</tr>';
+  }
+
+  const tips = store.ok
+    ? '成绩已保存在本机浏览器（localStorage），共 ' + list.length + ' 局，最多保留 ' + HISTORY_MAX + ' 局。'
+    : '⚠️ 当前环境禁用了本地存储（file:// 协议下部分浏览器如此），本局成绩只在本次会话内有效。';
+
+  box.innerHTML =
+    '<div class="card">' +
+      '<h2>历史战绩 · 多局对比</h2>' +
+      '<div class="hist-head">' +
+        '<span class="hist-kpi">总局数 <b>' + list.length + '</b></span>' +
+        '<span class="hist-kpi">最佳 d\u2032 <b>' + best.dPrime.toFixed(2) + '</b>（' + CONFIG.DIFFICULTY[best.difficulty].label + '）</span>' +
+        '<span class="hist-kpi">' + avgTxt + '</span>' +
+      '</div>' +
+      '<div class="bars">' + bars + '</div>' +
+      '<div style="overflow-x:auto;margin-top:16px">' +
+        '<table class="hist-table">' +
+          '<thead><tr>' +
+            '<th>局次</th><th>难度</th><th>有效试次</th><th>结局</th>' +
+            '<th>d\u2032</th><th>c</th><th>正确率</th><th>时间</th>' +
+          '</tr></thead>' +
+          '<tbody>' + rows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+      '<p style="font-size:12.5px;color:#5f6b7c;margin-top:14px;line-height:1.8">' +
+        tips + '<br>' +
+        '柱高按 d\u2032 相对最小值绘制，负值 d\u2032 用粉红柱标出；🏆 是本机的最佳成绩。' +
+        '对照不同难度的平均 d\u2032，可以直接看到「难度 → 辨别力」的效果。' +
+      '</p>' +
+      '<div style="margin-top:14px">' +
+        '<button type="button" class="btn btn-ghost" id="btnClearHist" style="font-size:13px;padding:9px 16px">清空历史记录</button>' +
+      '</div>' +
+    '</div>';
+
+  $('btnClearHist').addEventListener('click', function(){
+    store.clear();
+    renderHistory();
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Toast 提示
+   -------------------------------------------------------------------------- */
+let toastTimer = null;
+function showToast(type, text){
+  const el = $('toast');
+  el.textContent = text;
+  el.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+}
+function hideToast(){
+  const el = $('toast');
+  el.className = 'toast';
+}
+
+/* --------------------------------------------------------------------------
+   事件绑定
+   -------------------------------------------------------------------------- */
+// 难度选择
+$('diffGrid').addEventListener('click', function(e){
+  const btn = e.target.closest('.diff');
+  if(!btn) return;
+  document.querySelectorAll('.diff').forEach(function(b){ b.classList.remove('is-sel'); });
+  btn.classList.add('is-sel');
+  state.difficulty = btn.dataset.diff;
+});
+
+// 开始挑战
+$('btnStart').addEventListener('click', startExperiment);
+
+// 点击玻璃
+panelLeft.addEventListener('click',  function(){ handleChoice('left');  });
+panelRight.addEventListener('click', function(){ handleChoice('right'); });
+
+// 键盘操作（← / A 选左，→ / D 选右）
+document.addEventListener('keydown', function(e){
+  if(!$('page-game').classList.contains('is-active')) return;
+  const k = e.key.toLowerCase();
+  if(k === 'arrowleft'  || k === 'a'){ e.preventDefault(); handleChoice('left');  }
+  if(k === 'arrowright' || k === 'd'){ e.preventDefault(); handleChoice('right'); }
+});
+
+// 重新挑战（按要求：直接刷新页面）
+$('btnRestart').addEventListener('click', function(){ window.location.reload(); });
+
+// 返回开始界面（保留当前难度设置）
+$('btnBackStart').addEventListener('click', function(){
+  hideToast();
+  document.querySelectorAll('.diff').forEach(function(b){
+    b.classList.toggle('is-sel', b.dataset.diff === state.difficulty);
+  });
+  showPage('start');
+});
+</script>
+</body>
+</html>
