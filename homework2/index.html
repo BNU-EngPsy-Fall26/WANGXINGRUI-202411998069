@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light" />
+<title>注意实验室 · Stroop 色词干扰 &amp; 比例判断</title>
+<style>
+  /* =========================================================
+     1. 设计变量（现代、简洁、无干扰的浅色主题）
+     ========================================================= */
+  :root{
+    --bg:#f6f7f9;
+    --card:#ffffff;
+    --ink:#1b1f24;
+    --ink-2:#59616d;
+    --ink-3:#8b95a3;
+    --line:#e4e7ec;
+    --accent:#2f6fed;
+    --red:#d7263d;
+    --green:#17a44b;
+    --blue:#2b6cb0;
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{height:100%;}
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",Roboto,sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    -webkit-font-smoothing:antialiased;
+    /* 防止实验中被误选中文本 */
+    user-select:none;
+  }
+
+  /* =========================================================
+     2. 页面（屏幕）切换：同一时刻只显示一个 section
+     ========================================================= */
+  .screen{
+    display:none;
+    width:100%;
+    max-width:900px;
+    padding:36px 28px;
+    animation:fadeIn .28s ease;
+  }
+  .screen.active{display:block;}
+
+  @keyframes fadeIn{
+    from{opacity:0;transform:translateY(6px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:44px 48px 40px;
+    box-shadow:0 8px 30px rgba(20,30,50,.06);
+  }
+
+  .eyebrow{
+    font-size:13px;
+    letter-spacing:2px;
+    color:var(--accent);
+    font-weight:700;
+    margin-bottom:10px;
+  }
+
+  h1{
+    font-size:30px;
+    line-height:1.35;
+    margin:0 0 18px;
+    letter-spacing:.3px;
+  }
+
+  h3{
+    font-size:17px;
+    margin:0 0 12px;
+  }
+
+  p{
+    font-size:17px;
+    line-height:1.85;
+    color:var(--ink-2);
+    margin:0 0 14px;
+  }
+  p strong{color:var(--ink);font-weight:700;}
+  p.muted{color:var(--ink-3);font-size:15px;}
+  p.hint{color:var(--ink-3);font-size:14px;margin-top:14px;}
+
+  /* 按键样式 */
+  .key{
+    display:inline-block;
+    min-width:36px;
+    text-align:center;
+    padding:3px 9px;
+    margin:0 2px;
+    border-radius:8px;
+    border:1px solid #ccd4df;
+    border-bottom-width:3px;
+    background:#fff;
+    font-weight:700;
+    font-size:16px;
+    color:var(--ink);
+    line-height:1.4;
+  }
+  .key.f{border-color:#efb6bd;color:var(--red);}
+  .key.j{border-color:#a9dcc0;color:var(--green);}
+
+  /* 按键对照表 */
+  .keymap{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    margin:22px 0 8px;
+  }
+  .keymap-item{
+    flex:1 1 220px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:16px 18px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:#fbfcfe;
+    font-size:16px;
+    color:var(--ink-2);
+  }
+  .keymap-item .key{
+    font-size:18px;
+    min-width:44px;
+    padding:6px 10px;
+  }
+
+  /* 知情同意书 */
+  .consent-box{
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px 24px 8px;
+    background:#fbfcfe;
+    margin:6px 0 26px;
+  }
+  .consent-box ul{margin:0;padding-left:20px;}
+  .consent-box li{
+    font-size:16px;
+    line-height:1.85;
+    color:var(--ink-2);
+    margin-bottom:8px;
+  }
+  .consent-box li strong{color:var(--ink);}
+
+  /* 输入框 */
+  .field{margin-bottom:26px;}
+  .field label{
+    display:block;
+    font-size:15px;
+    font-weight:600;
+    color:var(--ink);
+    margin-bottom:10px;
+  }
+  #pid{
+    width:100%;
+    max-width:320px;
+    font-size:22px;
+    padding:13px 16px;
+    border-radius:12px;
+    border:1.5px solid var(--line);
+    outline:none;
+    letter-spacing:2px;
+    font-family:inherit;
+    color:var(--ink);
+    background:#fff;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  #pid:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(47,111,237,.12);}
+  .error{color:var(--red);font-size:14px;margin-top:8px;min-height:18px;}
+
+  /* 按钮 */
+  .btn{
+    appearance:none;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    font-family:inherit;
+    font-size:18px;
+    font-weight:600;
+    padding:14px 30px;
+    border-radius:12px;
+    cursor:pointer;
+    transition:transform .16s ease, box-shadow .16s ease, background .16s;
+  }
+  .btn.primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+    box-shadow:0 8px 20px rgba(47,111,237,.25);
+  }
+  .btn.primary:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(47,111,237,.32);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;transform:none;}
+  .btn.ghost{font-size:15px;padding:10px 18px;color:var(--ink-2);}
+  .btn.ghost:hover{background:#f1f3f7;}
+
+  .center{text-align:center;}
+  .center .btn{margin-top:12px;}
+
+  /* =========================================================
+     3. 实验运行舞台（固定尺寸，避免刺激切换时页面抖动）
+     ========================================================= */
+  #screen-task{max-width:1000px;}
+
+  .task-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    min-height:82vh;
+  }
+
+  .stage{
+    position:relative;
+    width:680px;
+    height:470px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  /* 舞台上所有刺激都绝对定位居中，互不影响布局 */
+  .stage > *{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    display:none;
+  }
+
+  /* 注视点 */
+  .fixation{
+    font-size:56px;
+    font-weight:300;
+    color:#aab3c0;
+    line-height:1;
+  }
+
+  /* Stroop 汉字 */
+  .stroop-stim{
+    font-size:150px;
+    font-weight:700;
+    line-height:1;
+    letter-spacing:6px;
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  }
+
+  /* 比例判断：两条竖条 */
+  .ratio-stim{
+    width:560px;
+    height:380px;
+  }
+  .plot{
+    position:relative;
+    width:100%;
+    height:100%;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap:150px;
+  }
+
+  /* 顶部刻度尺（with_ticks 条件） */
+  .ruler{
+    position:absolute;
+    left:0;
+    right:0;
+    top:-34px;
+    height:20px;
+    border-top:1px solid #b9c2ce;
+    display:none;
+  }
+  .ruler .tick{
+    position:absolute;
+    top:0;
+    width:1px;
+    height:8px;
+    background:#c3ccd8;
+  }
+  .ruler .tick.major{
+    height:14px;
+    background:#8d99a8;
+  }
+
+  /* 水平参考线（与刻度配合，辅助视觉对齐） */
+  .gridlines{
+    position:absolute;
+    inset:0;
+    display:none;
+    pointer-events:none;
+  }
+  .gridlines .gridline{
+    position:absolute;
+    left:0;
+    right:0;
+    height:1px;
+    background:#e9edf2;
+  }
+
+  /* 色条 */
+  .bar{
+    position:relative;
+    width:110px;
+    height:100%;
+    display:flex;
+    align-items:flex-end;
+    z-index:2;
+  }
+  .bar-fill{
+    width:100%;
+    border-radius:6px 6px 0 0;
+    transition:none;
+  }
+
+  /* 正误反馈（仅练习阶段） */
+  .feedback{
+    font-size:30px;
+    font-weight:700;
+    letter-spacing:2px;
+    opacity:0;
+    transition:opacity .12s;
+  }
+  .feedback.show{opacity:1;}
+  .feedback.correct{color:var(--green);}
+  .feedback.wrong{color:var(--red);}
+  .feedback.timeout{color:#8b95a3;}
+
+  /* 进度提示（低对比，不干扰） */
+  .progress{
+    margin-top:22px;
+    font-size:14px;
+    color:#b3bcc8;
+    letter-spacing:1px;
+    min-height:20px;
+  }
+
+  /* =========================================================
+     4. 结果页
+     ========================================================= */
+  .table-wrap{
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+    margin:22px 0 18px;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:16px;
+  }
+  th,td{
+    padding:13px 18px;
+    text-align:right;
+    border-bottom:1px solid var(--line);
+    color:var(--ink-2);
+  }
+  th:first-child,td:first-child{text-align:left;}
+  tbody tr:last-child td{border-bottom:none;}
+  thead th{
+    font-size:13px;
+    letter-spacing:.6px;
+    color:var(--ink-3);
+    font-weight:700;
+    background:#fafbfd;
+  }
+  tbody tr:hover{background:#fbfcfe;}
+  td.value{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;}
+
+  .effect-box{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    margin:6px 0 22px;
+  }
+  .effect-item{
+    flex:1 1 240px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px 20px;
+    background:#fbfcfe;
+  }
+  .effect-item .label{font-size:13px;color:var(--ink-3);letter-spacing:.5px;margin-bottom:6px;}
+  .effect-item .num{font-size:24px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;}
+
+  .upload-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+    padding-top:8px;
+    border-top:1px dashed var(--line);
+    margin-top:6px;
+  }
+  .upload-status{font-size:15px;color:var(--ink-2);margin-right:auto;}
+  .upload-status.ok{color:var(--green);font-weight:600;}
+  .upload-status.fail{color:var(--red);font-weight:600;}
+
+  .code-warn{
+    margin-top:14px;
+    font-size:14px;
+    line-height:1.7;
+    color:#a06100;
+    background:#fff8e8;
+    border:1px solid #f2dfb4;
+    border-radius:10px;
+    padding:12px 16px;
+  }
+  .code-warn.hide{display:none;}
+
+  /* 窄屏兜底（实验建议用电脑，这里只保证不崩版） */
+  @media (max-width:760px){
+    .card{padding:28px 22px;}
+    h1{font-size:24px;}
+    .stage{width:100%;transform:scale(.8);}
+    .ratio-stim{width:100%;}
+    .plot{gap:70px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     阶段 0：实验说明 + 知情同意 + 匿名编号
+     ========================================================= -->
+<section class="screen active" id="screen-consent">
+  <div class="card">
+    <div class="eyebrow">注意实验室 · 作业二</div>
+    <h1>注意与数量判断实验</h1>
+    <p>本实验包含两个小任务，全程约 <strong>8–10 分钟</strong>。请在安静、无打扰的环境中独立完成，并全程使用<strong>电脑键盘</strong>作答。</p>
+
+    <div class="consent-box">
+      <h3>知情同意书</h3>
+      <ul>
+        <li>本实验为课程作业，用于研究注意与数量判断的行为特点。</li>
+        <li>实验全程<strong>匿名</strong>：仅记录你的匿名编号、按键反应与反应时，<strong>不收集</strong>姓名、学号等个人身份信息。</li>
+        <li>数据仅用于课程分析与教学，不作商业用途，不上传任何可识别个人身份的内容。</li>
+        <li>你可以随时关闭页面退出实验；未完成实验则不会有数据被上传。</li>
+        <li>实验需要键盘操作（<span class="key f">F</span> / <span class="key j">J</span>），请在电脑上完成。</li>
+      </ul>
+    </div>
+
+    <div class="field">
+      <label for="pid">请输入您的匿名编号（如 P01）</label>
+      <input id="pid" type="text" maxlength="12" placeholder="P01" autocomplete="off" spellcheck="false" />
+      <div class="error" id="pidError"></div>
+    </div>
+
+    <button class="btn primary" id="btnConsent" disabled>我同意并开始实验</button>
+    <p class="hint">点击按钮即表示你已阅读并同意以上内容。建议按 F11 全屏，获得更沉浸的体验。</p>
+  </div>
+</section>
+
+<!-- =========================================================
+     阶段 1：Stroop 指导语
+     ========================================================= -->
+<section class="screen" id="screen-stroop-intro">
+  <div class="card">
+    <div class="eyebrow">实验一 / 共二</div>
+    <h1>Stroop 色词干扰任务</h1>
+    <p>屏幕中央会快速出现一个<strong>汉字</strong>。这个字的<strong>字义</strong>与它的<strong>字体颜色</strong>可能一致，也可能互相冲突。</p>
+    <p>你的任务：<strong>忽略字义，只判断字体的颜色</strong>，并尽可能<strong>又快又准</strong>地按键。</p>
+
+    <div class="keymap">
+      <div class="keymap-item">
+        <span class="key f">F</span>
+        <span>字体颜色是<strong style="color:#d7263d">红色</strong></span>
+      </div>
+      <div class="keymap-item">
+        <span class="key j">J</span>
+        <span>字体颜色是<strong style="color:#17a44b">绿色</strong></span>
+      </div>
+    </div>
+
+    <p class="muted">先进行 4 个练习试次（有正误反馈，<strong>不计入数据</strong>），随后是 20 个正式试次（无反馈）。</p>
+    <p class="hint">请把左手食指放在 F 键、右手食指放在 J 键上，准备好后点击下方按钮。</p>
+
+    <button class="btn primary" id="btnStroopPractice">开始练习</button>
+  </div>
+</section>
+
+<!-- =========================================================
+     阶段 1.5 / 2.5：通用过渡页（练习结束 → 正式开始）
+     ========================================================= -->
+<section class="screen" id="screen-mid">
+  <div class="card center">
+    <h1 id="midTitle">练习结束</h1>
+    <p id="midText"></p>
+    <button class="btn primary" id="btnMid">开始正式实验</button>
+  </div>
+</section>
+
+<!-- =========================================================
+     阶段 2：比例判断指导语
+     ========================================================= -->
+<section class="screen" id="screen-ratio-intro">
+  <div class="card">
+    <div class="eyebrow">实验二 / 共二</div>
+    <h1>比例判断任务</h1>
+    <p>屏幕中央会短暂出现<strong>两个相邻的彩色长条</strong>（左侧红色、右侧蓝色）。两个色条的高度代表各自的占比。</p>
+    <p>你的任务：判断<strong>哪一边的占比更大</strong>，并尽可能<strong>又快又准</strong>地按键。</p>
+
+    <div class="keymap">
+      <div class="keymap-item">
+        <span class="key f">F</span>
+        <span><strong style="color:#d7263d">左边</strong>（红色条）更大</span>
+      </div>
+      <div class="keymap-item">
+        <span class="key j">J</span>
+        <span><strong style="color:#2b6cb0">右边</strong>（蓝色条）更大</span>
+      </div>
+    </div>
+
+    <p class="muted">有的试次色条上方会多出一条<strong>带密集刻度线的标尺</strong>与水平参考线，有的则没有——两种条件请都照常作答。先进行 2 个练习试次，随后是 20 个正式试次。</p>
+
+    <button class="btn primary" id="btnRatioPractice">开始练习</button>
+  </div>
+</section>
+
+<!-- =========================================================
+     实验运行舞台（两个实验共用）
+     ========================================================= -->
+<section class="screen" id="screen-task">
+  <div class="task-wrap">
+    <div class="stage" id="stage">
+      <!-- 注视点 -->
+      <div class="fixation" id="fixation">+</div>
+
+      <!-- Stroop 刺激 -->
+      <div class="stroop-stim" id="stroopStim"></div>
+
+      <!-- 比例判断刺激 -->
+      <div class="ratio-stim" id="ratioStim">
+        <div class="plot" id="plot">
+          <div class="ruler" id="ruler"></div>
+          <div class="gridlines" id="gridlines"></div>
+          <div class="bar"><div class="bar-fill" id="fillLeft" style="background:#d7263d"></div></div>
+          <div class="bar"><div class="bar-fill" id="fillRight" style="background:#2b6cb0"></div></div>
+        </div>
+      </div>
+
+      <!-- 练习反馈 -->
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="progress" id="progress"></div>
+  </div>
+</section>
+
+<!-- =========================================================
+     阶段 3：结束页 + 结果展示 + 数据上传
+     ========================================================= -->
+<section class="screen" id="screen-result">
+  <div class="card">
+    <h1>实验完成，感谢参与！</h1>
+    <p>被试编号：<strong id="resPid">—</strong> ｜ 有效正式试次：<strong id="resCount">0</strong> 个</p>
+
+    <div class="table-wrap">
+      <table id="resultTable">
+        <thead>
+          <tr>
+            <th>实验 / 条件</th>
+            <th>试次数</th>
+            <th>平均反应时 (ms)</th>
+            <th>正确率</th>
+          </tr>
+        </thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+
+    <div class="effect-box">
+      <div class="effect-item">
+        <div class="label">Stroop 干扰量（不一致 − 一致）</div>
+        <div class="num" id="effectStroop">—</div>
+      </div>
+      <div class="effect-item">
+        <div class="label">刻度改善量（无刻度 − 有刻度）</div>
+        <div class="num" id="effectRatio">—</div>
+      </div>
+    </div>
+
+    <div class="upload-row">
+      <span class="upload-status" id="uploadStatus">准备上传数据…</span>
+      <button class="btn ghost" id="btnRetry">重新上传</button>
+      <button class="btn ghost" id="btnCsv">下载 CSV 备份</button>
+    </div>
+
+    <div class="code-warn hide" id="codeWarn">
+      ⚠️ 当前 <code>CONFIG.projectCode</code> 仍是占位符 <code>XXXXXX</code>，
+      数据无法归入你的项目。请在源码顶部把它替换成你在「注意实验室 /hw2」新建项目后得到的 6 位项目码。
+    </div>
+
+    <p class="hint">反应时统计仅包含<strong>正确试次</strong>；超时试次记为不正确，不参与反应时平均。</p>
+  </div>
+</section>
+
+<script>
+/* =========================================================================
+   注意实验室 · 作业二
+   实验一：Stroop 色词干扰任务（一致 / 不一致）
+   实验二：比例判断任务（无刻度 / 有刻度）—— 改进条件：加入带密集刻度的标尺
+   ---------------------------------------------------------------------
+   技术要点：
+   · 纯前端单文件，双击即可运行，无需任何依赖
+   · 反应时统一使用 performance.now()，并以 requestAnimationFrame 的时间戳
+     作为「刺激实际呈现时刻」，误差不超过一个刷新帧
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   0. 全局配置（只需改这里）
+   ------------------------------------------------------------------------- */
+const CONFIG = {
+  /* 项目码（6 位，公开，可写进网页；下载密钥是私密信息，绝不能写进网页/README） */
+  projectCode: 'HD7CE2',
+
+  endpoint: 'https://attention-lab-production.up.railway.app/api/hw2/submit',
+
+  // 实验一：Stroop
+  stroop: {
+    practicePerCond: 2,   // 每个条件 2 个 → 练习共 4 个试次（不计入数据）
+    formalPerCond: 10,    // 每个条件 10 个 → 正式共 20 个试次
+    timeoutMs: 3000       // 超时上限（毫秒）
+  },
+
+  // 实验二：比例判断
+  ratio: {
+    practice: 2,          // 练习 2 个试次（无刻度 / 有刻度 各 1 个）
+    formalPerCond: 10,    // 每个条件 10 个 → 正式共 20 个试次
+    timeoutMs: 5000
+  },
+
+  fixationMs: 500,        // 注视点呈现时长
+  feedbackMs: 650,        // 练习反馈呈现时长
+  itiMs: 350              // 试次间空屏（ITI）
+};
+
+/* -------------------------------------------------------------------------
+   1. 常量与工具函数
+   ------------------------------------------------------------------------- */
+const WORD_LABEL = { red: '红', green: '绿' };       // 字义 → 汉字
+const COLOR_HEX  = { red: '#d7263d', green: '#17a44b' }; // 颜色 → CSS 颜色
+
+const $ = id => document.getElementById(id);
+
+/** 等待若干毫秒 */
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * 等待下一个绘制帧，返回该帧的时间戳（DOMHighResTimeStamp，与 performance.now() 同源）。
+ * 用它作为「刺激出现」的时刻，比直接调用 performance.now() 更贴近真实绘制时间。
+ */
+const nextFrame = () => new Promise(resolve => requestAnimationFrame(ts => resolve(ts)));
+
+/** Fisher–Yates 洗牌（原地打乱并返回） */
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/** 切换显示某个屏幕 */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+/* -------------------------------------------------------------------------
+   2. 全局状态
+   ------------------------------------------------------------------------- */
+const state = {
+  participantId: '',   // 匿名编号
+  trials: [],          // 正式试次数据（唯一会被上传的数据）
+  midCallback: null,   // 过渡页按钮的回调
+  running: false,      // 流程锁，防止重复触发
+  uploaded: false      // 数据是否已成功上传（成功后可安全关闭页面）
+};
+
+/* -------------------------------------------------------------------------
+   3. DOM 引用
+   ------------------------------------------------------------------------- */
+const el = {
+  pid: $('pid'),
+  pidError: $('pidError'),
+  btnConsent: $('btnConsent'),
+
+  fixation: $('fixation'),
+  stroopStim: $('stroopStim'),
+  ratioStim: $('ratioStim'),
+  fillLeft: $('fillLeft'),
+  fillRight: $('fillRight'),
+  ruler: $('ruler'),
+  gridlines: $('gridlines'),
+  feedback: $('feedback'),
+  progress: $('progress'),
+
+  midTitle: $('midTitle'),
+  midText: $('midText'),
+  btnMid: $('btnMid'),
+
+  resPid: $('resPid'),
+  resCount: $('resCount'),
+  resultBody: $('resultBody'),
+  effectStroop: $('effectStroop'),
+  effectRatio: $('effectRatio'),
+  uploadStatus: $('uploadStatus'),
+  codeWarn: $('codeWarn')
+};
+
+/* -------------------------------------------------------------------------
+   4. 刺激呈现 / 隐藏
+   ------------------------------------------------------------------------- */
+/** 隐藏舞台上所有刺激与反馈（每次试次开始时调用，保证画面干净） */
+function hideAllStimuli(){
+  el.fixation.style.display = 'none';
+  el.stroopStim.style.display = 'none';
+  el.ratioStim.style.display = 'none';
+  el.feedback.style.display = 'none';
+  el.feedback.className = 'feedback';
+  el.feedback.textContent = '';
+}
+
+/** 更新底部进度提示 */
+function updateProgress(text){
+  el.progress.textContent = text;
+}
+
+/**
+ * 显示练习反馈，返回一个在反馈结束后 resolve 的 Promise。
+ * type: 'correct' | 'wrong' | 'timeout'
+ */
+function showFeedback(type){
+  return new Promise(resolve => {
+    const textMap = { correct: '✓ 正确', wrong: '✗ 错误', timeout: '超时' };
+    el.feedback.textContent = textMap[type] || '';
+    el.feedback.style.display = 'block';   // 舞台子元素默认 display:none，需显式打开
+    el.feedback.className = 'feedback show ' + type;
+    setTimeout(() => {
+      el.feedback.className = 'feedback';
+      el.feedback.textContent = '';
+      el.feedback.style.display = 'none';
+      resolve();
+    }, CONFIG.feedbackMs);
+  });
+}
+
+/* -------------------------------------------------------------------------
+   5. 按键反应收集器
+   —— 在刺激出现前就挂上监听，避免漏掉极快的按键；
+      反应时 = 按键时刻 − 刺激呈现时刻（均为 performance.now() 同一时间基准）
+   ------------------------------------------------------------------------- */
+function createResponder(validKeys, timeoutMs){
+  let onset = performance.now();   // 刺激呈现时刻，稍后由 setOnset 精确校准
+  let settled = false;
+  let timerId = null;
+
+  const promise = new Promise(resolve => {
+    function cleanup(){
+      window.removeEventListener('keydown', onKey);
+      if (timerId !== null){ clearTimeout(timerId); timerId = null; }
+    }
+    function finish(result){
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(result);
+    }
+    function onKey(e){
+      if (e.repeat || settled) return;                 // 忽略长按重复事件
+      const key = e.key ? e.key.toLowerCase() : '';
+      if (!validKeys.includes(key)) return;            // 只接受合法键
+      e.preventDefault();
+      finish({ key: key, rt: performance.now() - onset, timedOut: false });
+    }
+
+    window.addEventListener('keydown', onKey);
+    timerId = setTimeout(() => finish({ key: null, rt: null, timedOut: true }), timeoutMs);
+  });
+
+  return {
+    promise,
+    /** 用刺激真正绘制的帧时间戳校准起点 */
+    setOnset(t){ onset = t; },
+    isSettled(){ return settled; }
+  };
+}
+
+/* =========================================================================
+   6. 实验一：Stroop 色词干扰任务
+   ========================================================================= */
+
+/**
+ * 生成 Stroop 试次列表。
+ * 一致（congruent）：字义 == 字体颜色，如红色的「红」字
+ * 不一致（incongruent）：字义 != 字体颜色，如绿色的「红」字
+ * 每个条件下红/绿各占一半，最后整体随机打乱。
+ */
+function buildStroopTrials(perCond){
+  const list = [];
+  for (let i = 0; i < perCond; i++){
+    // 一致条件：颜色与字义相同（奇偶交替，保证红绿平衡）
+    const c1 = (i % 2 === 0) ? 'red' : 'green';
+    list.push({ cond: 'congruent', word: c1, color: c1 });
+
+    // 不一致条件：颜色与字义相反
+    const c2 = (i % 2 === 0) ? 'red' : 'green';
+    const w2 = (c2 === 'red') ? 'green' : 'red';
+    list.push({ cond: 'incongruent', word: w2, color: c2 });
+  }
+  return shuffle(list);
+}
+
+/**
+ * 运行单个 Stroop 试次。
+ * @param {Object} trial       试次配置 {cond, word, color}
+ * @param {boolean} withFeedback 是否给出正误反馈（练习阶段为 true）
+ * @returns {{rt:number|null, correct:boolean}}
+ */
+async function runStroopTrial(trial, withFeedback){
+  hideAllStimuli();
+
+  /* --- ① 注视点 --- */
+  el.fixation.style.display = 'block';
+  await sleep(CONFIG.fixationMs);
+  el.fixation.style.display = 'none';
+
+  /* --- ② 呈现刺激并计时 --- */
+  const responder = createResponder(['f', 'j'], CONFIG.stroop.timeoutMs);
+
+  el.stroopStim.textContent = WORD_LABEL[trial.word];
+  el.stroopStim.style.color = COLOR_HEX[trial.color];
+  el.stroopStim.style.display = 'block';
+
+  const onset = await nextFrame();   // 刺激所在帧的时间戳
+  responder.setOnset(onset);
+
+  const res = await responder.promise; // 等待按键或超时
+  el.stroopStim.style.display = 'none';
+
+  /* --- ③ 判定正误 --- */
+  const expectedKey = (trial.color === 'red') ? 'f' : 'j';  // 按键映射依据「颜色」
+  const correct = res.key === expectedKey;
+  const rt = res.timedOut ? null : Math.round(res.rt);
+
+  /* --- ④ 反馈 / 记录 --- */
+  if (withFeedback){
+    await showFeedback(res.timedOut ? 'timeout' : (correct ? 'correct' : 'wrong'));
+  } else {
+    // 只有正式试次才写入最终数据
+    state.trials.push({
+      exp: 'stroop',
+      cond: trial.cond,
+      rt: rt,
+      correct: correct
+    });
+  }
+  return { rt, correct };
+}
+
+/** 运行一个 Stroop 组块（练习或正式） */
+async function runStroopBlock(trials, withFeedback, label){
+  for (let i = 0; i < trials.length; i++){
+    updateProgress(label + '  ' + (i + 1) + ' / ' + trials.length);
+    await runStroopTrial(trials[i], withFeedback);
+    await sleep(CONFIG.itiMs);
+  }
+  updateProgress('');
+}
+
+/* =========================================================================
+   7. 实验二：比例判断任务（含「刻度线」改进条件）
+   ========================================================================= */
+
+/**
+ * 生成一个比例判断试次。
+ * 设计要点（改进条件）：
+ *   · 两个色条的占比差在 10%–30% 之间随机，保证难度适中、不会太容易也不会纯靠猜
+ *   · 大占比 ≤ 85%、小占比 ≥ 20%，避免天花板 / 地板效应
+ *   · 大的一侧左右随机，避免被试形成按键习惯
+ */
+function makeRatioTrial(cond){
+  const diff = 0.10 + Math.random() * 0.20;          // 10% ~ 30%
+  const maxSmall = 0.85 - diff;                       // 保证大条不超过 85%
+  const small = 0.20 + Math.random() * (maxSmall - 0.20); // 小条 20% ~ maxSmall
+  const big = small + diff;
+
+  const biggerOnLeft = Math.random() < 0.5;
+
+  return {
+    cond: cond,
+    leftRatio: biggerOnLeft ? big : small,
+    rightRatio: biggerOnLeft ? small : big,
+    correctKey: biggerOnLeft ? 'f' : 'j',   // f = 左边大，j = 右边大
+    diff: diff
+  };
+}
+
+/** 按条件生成正式/练习试次列表并打乱 */
+function buildRatioTrials(perCond){
+  const list = [];
+  for (let i = 0; i < perCond; i++){
+    list.push(makeRatioTrial('no_ticks'));
+    list.push(makeRatioTrial('with_ticks'));
+  }
+  return shuffle(list);
+}
+
+/** 一次性构建刻度尺与水平参考线的 DOM（之后只做显示/隐藏切换） */
+function buildRatioGuides(){
+  // 刻度尺：0%–100% 每 2.5% 一个小刻度，每 25% 一个长刻度
+  const TICK_N = 40;
+  el.ruler.innerHTML = '';
+  for (let i = 0; i <= TICK_N; i++){
+    const tick = document.createElement('div');
+    tick.className = 'tick' + (i % 10 === 0 ? ' major' : '');
+    tick.style.left = (i / TICK_N * 100) + '%';
+    el.ruler.appendChild(tick);
+  }
+
+  // 水平参考线：每 10% 一条，用于辅助视觉对齐（Cleveland & McGill 的刻度改进思路）
+  el.gridlines.innerHTML = '';
+  for (let p = 10; p <= 90; p += 10){
+    const line = document.createElement('div');
+    line.className = 'gridline';
+    line.style.bottom = p + '%';
+    el.gridlines.appendChild(line);
+  }
+}
+
+/** 把某个试次画到屏幕上 */
+function drawRatioStimulus(trial){
+  el.fillLeft.style.height  = (trial.leftRatio  * 100).toFixed(2) + '%';
+  el.fillRight.style.height = (trial.rightRatio * 100).toFixed(2) + '%';
+
+  const withTicks = (trial.cond === 'with_ticks');
+  el.ruler.style.display = withTicks ? 'block' : 'none';
+  el.gridlines.style.display = withTicks ? 'block' : 'none';
+}
+
+/**
+ * 运行单个比例判断试次。
+ * @param {Object} trial        试次配置
+ * @param {boolean} withFeedback 练习阶段给反馈
+ */
+async function runRatioTrial(trial, withFeedback){
+  hideAllStimuli();
+
+  /* --- ① 注视点 --- */
+  el.fixation.style.display = 'block';
+  await sleep(CONFIG.fixationMs);
+  el.fixation.style.display = 'none';
+
+  /* --- ② 呈现刺激并计时 --- */
+  const responder = createResponder(['f', 'j'], CONFIG.ratio.timeoutMs);
+
+  drawRatioStimulus(trial);
+  el.ratioStim.style.display = 'block';
+
+  const onset = await nextFrame();
+  responder.setOnset(onset);
+
+  const res = await responder.promise;
+  el.ratioStim.style.display = 'none';
+
+  /* --- ③ 判定与记录 --- */
+  const correct = res.key === trial.correctKey;
+  const rt = res.timedOut ? null : Math.round(res.rt);
+
+  if (withFeedback){
+    await showFeedback(res.timedOut ? 'timeout' : (correct ? 'correct' : 'wrong'));
+  } else {
+    state.trials.push({
+      exp: 'ratio',
+      cond: trial.cond,
+      rt: rt,
+      correct: correct
+    });
+  }
+  return { rt, correct };
+}
+
+/** 运行一个比例判断组块 */
+async function runRatioBlock(trials, withFeedback, label){
+  for (let i = 0; i < trials.length; i++){
+    updateProgress(label + '  ' + (i + 1) + ' / ' + trials.length);
+    await runRatioTrial(trials[i], withFeedback);
+    await sleep(CONFIG.itiMs);
+  }
+  updateProgress('');
+}
+
+/* =========================================================================
+   8. 实验流程控制
+   ========================================================================= */
+
+/* ---------- 阶段 0：知情同意 ---------- */
+function validatePid(value){
+  const v = value.trim();
+  if (!v) return '请先填写匿名编号';
+  if (!/^[A-Za-z0-9_-]{2,12}$/.test(v)) return '编号只能包含字母、数字、下划线或短横线（2–12 位）';
+  return '';
+}
+
+el.pid.addEventListener('input', () => {
+  const msg = validatePid(el.pid.value);
+  el.pidError.textContent = el.pid.value.trim() ? msg : '';
+  el.btnConsent.disabled = !!msg;
+});
+
+el.btnConsent.addEventListener('click', () => {
+  const msg = validatePid(el.pid.value);
+  if (msg){ el.pidError.textContent = msg; return; }
+  state.participantId = el.pid.value.trim();
+  showScreen('screen-stroop-intro');
+});
+
+/* ---------- 通用过渡页 ---------- */
+function showMid({ title, text, buttonText, onNext }){
+  el.midTitle.textContent = title;
+  el.midText.innerHTML = text;
+  el.btnMid.textContent = buttonText;
+  state.midCallback = onNext;
+  showScreen('screen-mid');
+}
+
+el.btnMid.addEventListener('click', () => {
+  const cb = state.midCallback;
+  state.midCallback = null;
+  if (typeof cb === 'function') cb();
+});
+
+/* ---------- 阶段 1：Stroop 练习 ---------- */
+$('btnStroopPractice').addEventListener('click', () => {
+  if (state.running) return;
+  state.running = true;
+  showScreen('screen-task');
+  // 让浏览器先完成一次布局，再开始第一个试次
+  requestAnimationFrame(async () => {
+    const practiceTrials = buildStroopTrials(CONFIG.stroop.practicePerCond); // 4 个
+    await runStroopBlock(practiceTrials, true, '练习');
+    state.running = false;
+    showMid({
+      title: '练习结束',
+      text: '接下来是 <strong>20 个正式试次</strong>，不再给出正误反馈。<br>请继续保持<strong>又快又准</strong>，把手指放在 <span class="key f">F</span> 和 <span class="key j">J</span> 上。',
+      buttonText: '开始正式实验',
+      onNext: startStroopFormal
+    });
+  });
+});
+
+/* ---------- 阶段 1：Stroop 正式 ---------- */
+async function startStroopFormal(){
+  if (state.running) return;
+  state.running = true;
+  showScreen('screen-task');
+  await sleep(120);
+
+  const formalTrials = buildStroopTrials(CONFIG.stroop.formalPerCond); // 20 个
+  await runStroopBlock(formalTrials, false, '正式');
+
+  state.running = false;
+  showScreen('screen-ratio-intro');
+}
+
+/* ---------- 阶段 2：比例判断练习 ---------- */
+$('btnRatioPractice').addEventListener('click', () => {
+  if (state.running) return;
+  state.running = true;
+  showScreen('screen-task');
+
+  requestAnimationFrame(async () => {
+    // 练习 2 个：无刻度 1 个 + 有刻度 1 个（让被试提前适应两种画面）
+    const practiceTrials = shuffle([
+      makeRatioTrial('no_ticks'),
+      makeRatioTrial('with_ticks')
+    ]);
+    await runRatioBlock(practiceTrials, true, '练习');
+    state.running = false;
+    showMid({
+      title: '练习结束',
+      text: '接下来是 <strong>20 个正式试次</strong>。有的试次<strong>有刻度尺</strong>，有的<strong>没有</strong>，请都照常作答。<br><span class="key f">F</span> = 左边更大，<span class="key j">J</span> = 右边更大。',
+      buttonText: '开始正式实验',
+      onNext: startRatioFormal
+    });
+  });
+});
+
+/* ---------- 阶段 2：比例判断正式 ---------- */
+async function startRatioFormal(){
+  if (state.running) return;
+  state.running = true;
+  showScreen('screen-task');
+  await sleep(120);
+
+  const formalTrials = buildRatioTrials(CONFIG.ratio.formalPerCond); // 20 个
+  await runRatioBlock(formalTrials, false, '正式');
+
+  state.running = false;
+  finishExperiment();
+}
+
+/* =========================================================================
+   9. 结果统计与展示
+   ========================================================================= */
+
+/**
+ * 按「实验 × 条件」聚合统计。
+ * 平均反应时只统计正确且未超时的试次（心理学习惯做法）。
+ */
+function groupStats(trials){
+  const map = new Map();
+  const bucket = key => {
+    if (!map.has(key)) map.set(key, { n: 0, correct: 0, rtSum: 0, rtN: 0 });
+    return map.get(key);
+  };
+
+  trials.forEach(t => {
+    // 同时累加到「总体」与「具体条件」两个桶里
+    [t.exp + '|*', t.exp + '|' + t.cond].forEach(key => {
+      const b = bucket(key);
+      b.n++;
+      if (t.correct){
+        b.correct++;
+        if (t.rt !== null){ b.rtSum += t.rt; b.rtN++; }
+      }
+    });
+  });
+  return map;
+}
+
+const ROW_DEFS = [
+  { key: 'stroop|*',           label: '实验一 · Stroop 总体' },
+  { key: 'stroop|congruent',   label: '　└ 一致条件' },
+  { key: 'stroop|incongruent', label: '　└ 不一致条件' },
+  { key: 'ratio|*',            label: '实验二 · 比例判断总体' },
+  { key: 'ratio|no_ticks',     label: '　└ 无刻度' },
+  { key: 'ratio|with_ticks',   label: '　└ 有刻度' }
+];
+
+function meanRt(stats, key){
+  const b = stats.get(key);
+  if (!b || b.rtN === 0) return null;
+  return b.rtSum / b.rtN;
+}
+
+function renderResults(){
+  const stats = groupStats(state.trials);
+
+  el.resPid.textContent = state.participantId || '—';
+  el.resCount.textContent = String(state.trials.length);
+
+  // 表格
+  el.resultBody.innerHTML = '';
+  ROW_DEFS.forEach(def => {
+    const b = stats.get(def.key);
+    const tr = document.createElement('tr');
+
+    const n = b ? b.n : 0;
+    const rt = meanRt(stats, def.key);
+    const acc = (b && b.n > 0) ? (b.correct / b.n) : null;
+
+    tr.innerHTML =
+      '<td>' + def.label + '</td>' +
+      '<td class="value">' + n + '</td>' +
+      '<td class="value">' + (rt === null ? '—' : Math.round(rt)) + '</td>' +
+      '<td class="value">' + (acc === null ? '—' : (acc * 100).toFixed(1) + '%') + '</td>';
+    el.resultBody.appendChild(tr);
+  });
+
+  // 关键效应量：Stroop 干扰量 & 刻度改善量
+  const inc = meanRt(stats, 'stroop|incongruent');
+  const con = meanRt(stats, 'stroop|congruent');
+  el.effectStroop.textContent =
+    (inc !== null && con !== null) ? (Math.round(inc - con) + ' ms') : '—';
+
+  const nt = meanRt(stats, 'ratio|no_ticks');
+  const wt = meanRt(stats, 'ratio|with_ticks');
+  el.effectRatio.textContent =
+    (nt !== null && wt !== null) ? (Math.round(nt - wt) + ' ms') : '—';
+}
+
+/* =========================================================================
+   10. 实验结束：展示结果 → 上传数据
+   ========================================================================= */
+function finishExperiment(){
+  renderResults();
+  showScreen('screen-result');
+
+  // 提示项目码尚未替换
+  if (!CONFIG.projectCode || CONFIG.projectCode === 'XXXXXX'){
+    el.codeWarn.classList.remove('hide');
+  } else {
+    el.codeWarn.classList.add('hide');
+  }
+
+  doUpload();
+}
+
+/** 上传数据（按课程要求封装的所有试次数据） */
+function uploadData(participantId, allTrials){
+  return fetch(CONFIG.endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      project: CONFIG.projectCode,          // 6 位项目码
+      experiment: 'stroop_and_ratio',
+      participant: participantId,
+      condition: 'mixed',                   // 本实验混合了两种任务
+      trials: allTrials
+      // allTrials 格式示例：
+      // [{ exp: 'stroop', cond: 'congruent',   rt: 450, correct: true },
+      //  { exp: 'ratio',  cond: 'with_ticks', rt: 600, correct: true }]
+    })
+  });
+}
+
+let uploading = false;
+
+async function doUpload(){
+  if (uploading) return;
+  uploading = true;
+
+  el.uploadStatus.textContent = '正在上传数据…';
+  el.uploadStatus.className = 'upload-status';
+
+  try {
+    const response = await uploadData(state.participantId, state.trials);
+    if (response.ok){
+      el.uploadStatus.textContent = '✅ 数据上传成功，谢谢你的参与！';
+      el.uploadStatus.className = 'upload-status ok';
+      state.uploaded = true;
+      console.log('数据上传成功');
+    } else {
+      el.uploadStatus.textContent = '⚠️ 上传失败（HTTP ' + response.status + '），可点击「重新上传」或下载 CSV 交给主试。';
+      el.uploadStatus.className = 'upload-status fail';
+    }
+  } catch (err){
+    console.error('数据上传失败', err);
+    el.uploadStatus.textContent = '⚠️ 上传失败（网络异常），可点击「重新上传」或下载 CSV 交给主试。';
+    el.uploadStatus.className = 'upload-status fail';
+  } finally {
+    uploading = false;
+  }
+}
+
+$('btnRetry').addEventListener('click', doUpload);
+
+/* ---------- CSV 备份下载（上传失败时的兜底） ---------- */
+$('btnCsv').addEventListener('click', () => {
+  const header = ['participant', 'exp', 'cond', 'rt', 'correct'];
+  const lines = [header.join(',')];
+  state.trials.forEach(t => {
+    lines.push([
+      state.participantId,
+      t.exp,
+      t.cond,
+      t.rt === null ? '' : t.rt,
+      t.correct
+    ].join(','));
+  });
+
+  const csv = '\uFEFF' + lines.join('\n');   // BOM，保证 Excel 中文不乱码
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'attention_' + (state.participantId || 'anon') + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* =========================================================================
+   11. 初始化
+   ========================================================================= */
+(function init(){
+  buildRatioGuides();          // 预生成刻度尺与参考线
+  hideAllStimuli();            // 保证初始画面干净
+  showScreen('screen-consent'); // 从知情同意页开始
+
+  // 阻止空格 / 方向键滚动页面（实验进行中误触会干扰刺激呈现）
+  window.addEventListener('keydown', e => {
+    const tag = e.target && e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;   // 输入框里正常打字
+    if ([' ', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown'].includes(e.key)){
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  // 离开页面前提醒（避免被试误关闭导致数据丢失）
+  window.addEventListener('beforeunload', e => {
+    if (state.trials.length > 0 && !state.uploaded){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+})();
+</script>
+</body>
+</html>
