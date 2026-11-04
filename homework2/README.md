@@ -1,4 +1,4 @@
-🌐 **在线实验（被试直接点此参与）**：`部署后把 GitHub Pages 链接粘贴到这里，例如 https://你的用户名.github.io/homework2/`
+🌐 **在线实验（被试直接点此参与）**&#8203;：https://bnu-engpsy-fall26.github.io/WANGXINGRUI-202411998069/homework2/
 
 # 作业二 · 注意实验：复现 + 改进（Stroop 与比例判断）
 
